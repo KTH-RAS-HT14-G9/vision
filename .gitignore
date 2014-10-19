@@ -1,3 +1,8 @@
+# Ignore qtcreator files
+*.user
+*~
+*.log
+
 # Compiled Object files
 *.slo
 *.lo
