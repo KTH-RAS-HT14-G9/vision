@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(wall_detector)
 
+set(CMAKE_BUILD_TYPE Debug)
+
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
@@ -95,6 +97,7 @@ catkin_package(
 # include_directories(include)
 include_directories(
   ${catkin_INCLUDE_DIRS}
+  "/usr/include/vtk-5.8"
 )
 
 ## Declare a cpp library
@@ -116,6 +119,7 @@ add_executable(wall_detector src/wall_detector.cpp)
 # )
 target_link_libraries(wall_detector
   ${catkin_LIBRARIES}
+  ${PCL_LIBRARIES} libvtkCommon.so libvtkFiltering.so libvtkRendering.so
 )
 
 #############
