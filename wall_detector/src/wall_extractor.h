@@ -13,7 +13,27 @@
 
 #include <Eigen/Core>
 
-#include <pcl/visualization/cloud_viewer.h>
+//#include <pcl/visualization/cloud_viewer.h>
+
+class Wall {
+public:
+    Wall(const pcl::PointCloud<pcl::PointXYZ>::ConstPtr& original,
+         const pcl::ModelCoefficientsConstPtr& coefficients,
+         const pcl::PointIndicesConstPtr& inliers)
+    {
+        _original_cloud = original;
+        _coefficients = coefficients;
+        _inliers = inliers;
+    }
+
+    pcl::ModelCoefficientsConstPtr get_coefficients() { return _coefficients; }
+    pcl::PointIndicesConstPtr get_inliers() { return _inliers; }
+
+protected:
+    pcl::PointCloud<pcl::PointXYZ>::ConstPtr _original_cloud;
+    pcl::ModelCoefficientsConstPtr _coefficients;
+    pcl::PointIndicesConstPtr _inliers;
+};
 
 class WallExtractor
 {
@@ -21,11 +41,14 @@ public:
     typedef pcl::PointCloud<pcl::PointXYZ> PointCloud;
     typedef PointCloud::ConstPtr SharedPointCloud;
 
+    typedef boost::shared_ptr<std::vector<Wall> > WallsPtr;
+
     WallExtractor();
 
-    Eigen::MatrixX4d extract(const SharedPointCloud &cloud,
-                             double distance_threshold,
-                             const Eigen::Vector3d& voxel_leaf_size);
+    WallsPtr extract(const SharedPointCloud &cloud,
+                                      double distance_threshold,
+                                      double halt_condition,
+                                      const Eigen::Vector3d& voxel_leaf_size);
 
 protected:
     pcl::SACSegmentation<pcl::PointXYZ> _seg;
@@ -48,8 +71,27 @@ WallExtractor::WallExtractor() {
     _cloud_f = PointCloud::Ptr(new PointCloud);
 }
 
-Eigen::MatrixX4d WallExtractor::extract(const SharedPointCloud &cloud,
+/**
+  * Adapted from http://pointclouds.org/documentation/tutorials/extract_indices.php
+  *
+  * Uses RANSAC to find plane models in point cloud.
+  * Finds walls in an iterative fashion, where the walls with strongest consense
+  * are sequentially removed from the whole point cloud until there are only
+  * @see(halt_condition) percent of the original points left.
+  *
+  * @param distance_threshold   Minimum distance to the detected wall
+  * @param halt_condition       Halting condition defined in percent of the original
+  *                             number of points in the cloud. Is the condition
+  *                             reached, the method is stopping to find any further
+  *                             planes.
+  * @param voxel_leaf_size      Defines voxel size. The greater the voxels the faster
+  *                             the computation and the worse the accuracy.
+  * @return Shared pointer of array of @link(WallExtractor::Wall). Empty if no
+  *         walls found.
+  */
+WallExtractor::WallsPtr WallExtractor::extract(const SharedPointCloud &cloud,
                                         double distance_threshold = 0.01,
+                                        double halt_condition = 0.3,
                                         const Eigen::Vector3d& voxel_leaf_size = Eigen::Vector3d(0.1,0.1,0.1))
 {
     using namespace pcl;
@@ -65,17 +107,20 @@ Eigen::MatrixX4d WallExtractor::extract(const SharedPointCloud &cloud,
     _downsampler.filter (*_cloud_filtered_downsampled);
 
 
-    ModelCoefficients::Ptr coefficients (new ModelCoefficients);
-    PointIndices::Ptr inliers (new PointIndices);
+    WallExtractor::WallsPtr walls;
+
 
     _seg.setDistanceThreshold (distance_threshold);
 
 
     int i = 0, nr_points = (int) _cloud_filtered->points.size ();
 
-    // While 30% of the original cloud is still there
-    while (_cloud_filtered->points.size () > 0.3 * nr_points)
+    // While halt_condition% of the original cloud is still there
+    while (_cloud_filtered->points.size () > halt_condition * nr_points)
     {
+        ModelCoefficientsPtr coefficients(new ModelCoefficients);
+        PointIndicesPtr inliers(new PointIndices);
+
         // Segment the largest planar component from the remaining cloud
         _seg.setInputCloud (_cloud_filtered);
         _seg.segment (*inliers, *coefficients);
@@ -84,6 +129,9 @@ Eigen::MatrixX4d WallExtractor::extract(const SharedPointCloud &cloud,
             std::cerr << "Could not estimate a planar model for the given dataset." << std::endl;
             break;
         }
+
+        //add wall to result set
+        walls->push_back(Wall(cloud,coefficients,inliers));
 
         // Extract the inliers
         _extract.setInputCloud (_cloud_filtered);
@@ -107,7 +155,7 @@ Eigen::MatrixX4d WallExtractor::extract(const SharedPointCloud &cloud,
 //    {
 //    }
 
-    return Eigen::MatrixX4d();
+    return walls;
 }
 
 #endif // WALL_EXTRACTOR_H
