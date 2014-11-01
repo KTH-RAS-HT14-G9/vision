@@ -32,7 +32,7 @@ void testcase() {
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>);
 
     // Fill in the cloud data
-    cloud->width  = 150+300+150;
+    cloud->width  = 150+300+150+100;
     cloud->height = 1;
     cloud->points.resize (cloud->width * cloud->height);
 
@@ -52,7 +52,7 @@ void testcase() {
     {
         cloud->points[k+i].x = 60 * rand () / (RAND_MAX + 1.0f);
         cloud->points[k+i].y = -1;
-        cloud->points[k+i].z = 20 * rand () / (RAND_MAX + 1.0f);
+        cloud->points[k+i].z = +1 + 20 * rand () / (RAND_MAX + 1.0f);
     }
     k+=150;
 
@@ -61,7 +61,16 @@ void testcase() {
     {
         cloud->points[k+i].x = 60 * rand () / (RAND_MAX + 1.0f);
         cloud->points[k+i].y = +1;
-        cloud->points[k+i].z = 20 * rand () / (RAND_MAX + 1.0f);
+        cloud->points[k+i].z = +1 + 20 * rand () / (RAND_MAX + 1.0f);
+    }
+    k+=150;
+
+    // Generate front wall
+    for (size_t i = 0; i < 100; ++i)
+    {
+        cloud->points[k+i].x = +1;
+        cloud->points[k+i].y = 20 * rand () / (RAND_MAX + 1.0f);
+        cloud->points[k+i].z = +1 + 20 * rand () / (RAND_MAX + 1.0f);
     }
 
     _extractor.extract(cloud);
