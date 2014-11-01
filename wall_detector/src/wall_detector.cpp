@@ -69,8 +69,8 @@ void testcase() {
 
 int main(int argc, char **argv)
 {
-    testcase();
-    return 0;
+//    testcase();
+//    return 0;
 
     ros::init(argc, argv, "wall_detector");
 
