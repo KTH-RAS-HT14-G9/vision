@@ -35,6 +35,7 @@ public:
         _inliers = inliers;
     }
 
+    pcl::PointCloud<pcl::PointXYZ>::ConstPtr get_original_cloud() { return _original_cloud; }
     pcl::ModelCoefficientsConstPtr get_coefficients() { return _coefficients; }
     pcl::PointIndicesConstPtr get_inliers() { return _inliers; }
 
