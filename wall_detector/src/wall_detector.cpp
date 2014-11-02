@@ -2,6 +2,7 @@
 #include "wall_extractor.h"
 #include <pcl_ros/point_cloud.h>
 #include <pcl/point_types.h>
+#include <wall_detector/Walls.h>
 
 //------------------------------------------------------------------------------
 // Constants
@@ -25,11 +26,11 @@ void callback_point_cloud(const WallExtractor::SharedPointCloud& pcloud)
 }
 
 //------------------------------------------------------------------------------
-// Entry point
+// Test cases
 
-void testcase() {
+WallExtractor::PointCloud::Ptr testcase() {
 
-    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>);
+    WallExtractor::PointCloud::Ptr cloud(new WallExtractor::PointCloud);
 
     // Fill in the cloud data
     cloud->width  = 150+300+150+100;
@@ -73,12 +74,44 @@ void testcase() {
         cloud->points[k+i].z = +1 + 20 * rand () / (RAND_MAX + 1.0f);
     }
 
-    _extractor.extract(cloud);
+    return cloud;
 }
+
+//------------------------------------------------------------------------------
+// Message converter
+
+template<typename T>
+void append_all(std::vector<T>& a, const std::vector<T>& b)
+{
+    a.insert(a.begin(), b.begin(), b.end());
+}
+
+typedef boost::shared_ptr<wall_detector::Walls> WallsMsgPtr;
+WallsMsgPtr generate_walls_msg(const WallExtractor::WallsPtr& data)
+{
+    WallsMsgPtr msg(new wall_detector::Walls);
+
+    for(int i = 0; i < data->size(); ++i)
+    {
+        wall_detector::Wall wall;
+        pcl::ModelCoefficientsConstPtr coeff = data->at(i).get_coefficients();
+        pcl::PointIndicesConstPtr inliers = data->at(i).get_inliers();
+
+        append_all<float>(wall.plane_coefficients, coeff->values);
+        append_all<int>(wall.point_cloud_inliers, inliers->indices);
+
+        msg->walls.push_back(wall);
+    }
+
+    return msg;
+}
+
+//------------------------------------------------------------------------------
+// Entry point
 
 int main(int argc, char **argv)
 {
-//    testcase();
+//    _pcloud = testcase();
 //    return 0;
 
     ros::init(argc, argv, "wall_detector");
@@ -89,13 +122,17 @@ int main(int argc, char **argv)
     ros::Subscriber sub_pcloud = n.subscribe<pcl::PointCloud<pcl::PointXYZ> >
             ("/camera/point_cloud", 3, callback_point_cloud);
 
+    ros::Publisher pub_walls = n.advertise<wall_detector::Walls>("/vision/walls",10);
+
     ros::Rate rate(PUBLISH_FREQUENCY);
 
     while(n.ok())
     {
         n.getParamCached(_distance_threshold_key,_distance_threshold);
 
-        _extractor.extract(_pcloud, _distance_threshold);
+        WallExtractor::WallsPtr walls = _extractor.extract(_pcloud, _distance_threshold);
+
+        pub_walls.publish(generate_walls_msg(walls));
 
         ros::spinOnce();
         rate.sleep();
