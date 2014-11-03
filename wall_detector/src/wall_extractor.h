@@ -3,6 +3,8 @@
 
 #define ENABLE_VISUALIZATION 0
 
+#include "wall_detector/segmented_wall.h"
+
 #include <pcl/ModelCoefficients.h>
 #include <pcl/point_types.h>
 #include <pcl/filters/voxel_grid.h>
@@ -24,7 +26,7 @@
 #include <pcl/io/pcd_io.h>
 #endif
 
-class Wall {
+/*class Wall {
 public:
     Wall(const pcl::PointCloud<pcl::PointXYZ>::ConstPtr& original,
          const pcl::ModelCoefficientsConstPtr& coefficients,
@@ -43,7 +45,7 @@ protected:
     pcl::PointCloud<pcl::PointXYZ>::ConstPtr _original_cloud;
     pcl::ModelCoefficientsConstPtr _coefficients;
     pcl::PointIndicesConstPtr _inliers;
-};
+};*/
 
 class WallExtractor
 {
@@ -51,7 +53,7 @@ public:
     typedef pcl::PointCloud<pcl::PointXYZ> PointCloud;
     typedef PointCloud::ConstPtr SharedPointCloud;
 
-    typedef boost::shared_ptr<std::vector<Wall> > WallsPtr;
+    typedef boost::shared_ptr<std::vector<SegmentedWall> > WallsPtr;
 
     WallExtractor();
 
@@ -145,7 +147,7 @@ WallExtractor::WallsPtr WallExtractor::extract(const SharedPointCloud &cloud,
     _downsampler.filter (*_cloud_filtered);
 
 
-    WallExtractor::WallsPtr walls(new std::vector<Wall>);
+    WallExtractor::WallsPtr walls(new std::vector<SegmentedWall>);
 
 #if ENABLE_VISUALIZATION==1
     visualization::PCLVisualizer viewer("Viewer");
@@ -181,7 +183,7 @@ WallExtractor::WallsPtr WallExtractor::extract(const SharedPointCloud &cloud,
         }
 
         //add wall to result set
-        walls->push_back(Wall(cloud,coefficients,inliers));
+        walls->push_back(SegmentedWall(coefficients,inliers));
 
         // Extract the inliers
         _extract.setInputCloud (_cloud_filtered);
