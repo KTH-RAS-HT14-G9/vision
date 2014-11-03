@@ -111,7 +111,7 @@ WallsMsgPtr generate_walls_msg(const WallExtractor::WallsPtr& data)
 
 int main(int argc, char **argv)
 {
-//    _pcloud = testcase();
+    _pcloud = testcase();
 //    return 0;
 
     ros::init(argc, argv, "wall_detector");

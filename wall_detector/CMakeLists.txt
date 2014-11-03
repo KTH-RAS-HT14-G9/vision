@@ -87,7 +87,7 @@ generate_messages(
 #  LIBRARIES wall_detector
 #  CATKIN_DEPENDS pcl_ros roscpp std_msgs message_runtime
 #  DEPENDS system_lib
-)
+#)
 
 ###########
 ## Build ##

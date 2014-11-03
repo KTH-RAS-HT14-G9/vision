@@ -77,6 +77,9 @@ protected:
 
 private:
 #if ENABLE_VISUALIZATION==1
+    pcl::visualization::PCLVisualizer _viewer;
+    std::vector<Color> _colors;
+
     static void AddPCL(pcl::visualization::PCLVisualizer& vis, const SharedPointCloud& cloud, const std::string& key, int r, int g, int b)
     {
         pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> color(cloud,r,g,b);
@@ -110,6 +113,19 @@ WallExtractor::WallExtractor() {
     _cloud_filtered = PointCloud::Ptr(new PointCloud);
     _cloud_p = PointCloud::Ptr(new PointCloud);
     _cloud_f = PointCloud::Ptr(new PointCloud);
+
+
+#if ENABLE_VISUALIZATION==1
+    //visualization::PCLVisualizer viewer("Viewer");
+    _viewer.addCoordinateSystem (1.0);
+    _viewer.initCameraParameters ();
+
+    _colors.push_back(WallExtractor::Color(255,0,0));
+    _colors.push_back(WallExtractor::Color(0,255,0));
+    _colors.push_back(WallExtractor::Color(0,0,255));
+    _colors.push_back(WallExtractor::Color(255,255,0));
+    _colors.push_back(WallExtractor::Color(0,255,255));
+#endif
 }
 
 /**
@@ -141,6 +157,11 @@ WallExtractor::WallsPtr WallExtractor::extract(const SharedPointCloud &cloud,
     _cloud_p->clear();
     _cloud_f->clear();
 
+#if ENABLE_VISUALIZATION==1
+    _viewer.removeAllPointClouds();
+    _viewer.removeAllShapes();
+#endif
+
     // Create the filtering object: downsample the dataset using the given leaf size
     _downsampler.setInputCloud (cloud);
     _downsampler.setLeafSize (voxel_leaf_size(0), voxel_leaf_size(1), voxel_leaf_size(2));
@@ -148,19 +169,6 @@ WallExtractor::WallsPtr WallExtractor::extract(const SharedPointCloud &cloud,
 
 
     WallExtractor::WallsPtr walls(new std::vector<SegmentedWall>);
-
-#if ENABLE_VISUALIZATION==1
-    visualization::PCLVisualizer viewer("Viewer");
-    viewer.addCoordinateSystem (1.0);
-    viewer.initCameraParameters ();
-
-    boost::shared_ptr<std::vector<WallExtractor::Color> > colors(new std::vector<WallExtractor::Color>);
-    colors->push_back(WallExtractor::Color(255,0,0));
-    colors->push_back(WallExtractor::Color(0,255,0));
-    colors->push_back(WallExtractor::Color(0,0,255));
-    colors->push_back(WallExtractor::Color(255,255,0));
-    colors->push_back(WallExtractor::Color(0,255,255));
-#endif
 
     _seg.setDistanceThreshold (distance_threshold);
 
@@ -194,12 +202,12 @@ WallExtractor::WallsPtr WallExtractor::extract(const SharedPointCloud &cloud,
 #if ENABLE_VISUALIZATION==1
         std::stringstream ss;
         ss << "Plane: " << i;
-        if (i < colors->size())
-            WallExtractor::AddPCL(viewer, _cloud_p, ss.str(), (*colors)[i].r, (*colors)[i].g, (*colors)[i].b);
+        if (i < _colors.size())
+            WallExtractor::AddPCL(_viewer, _cloud_p, ss.str(), _colors[i].r, _colors[i].g, _colors[i].b);
         else
-            WallExtractor::AddPCL(viewer, _cloud_p, ss.str());
+            WallExtractor::AddPCL(_viewer, _cloud_p, ss.str());
 
-        viewer.addPlane(*coefficients,0,0,0,ss.str());
+        _viewer.addPlane(*coefficients,0,0,0,ss.str());
 #endif
 
         // Create the filtering object
@@ -212,14 +220,15 @@ WallExtractor::WallsPtr WallExtractor::extract(const SharedPointCloud &cloud,
 #if ENABLE_VISUALIZATION==1
     std::cerr << "Walls fitted: " << i << std::endl;
 
-    WallExtractor::AddPCL(viewer,_cloud_filtered,"unclassified",255,255,255);
+    WallExtractor::AddPCL(_viewer,_cloud_filtered,"unclassified",255,255,255);
 
-    viewer.resetCamera();
-    while (!viewer.wasStopped ())
+    //viewer.resetCamera();
+    _viewer.spinOnce(100);
+    /*while (!viewer.wasStopped ())
     {
         viewer.spinOnce (100);
         boost::this_thread::sleep (boost::posix_time::microseconds (100000));
-    }
+    }*/
 #endif
 
     return walls;
