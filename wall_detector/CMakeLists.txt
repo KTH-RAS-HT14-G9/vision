@@ -121,7 +121,7 @@ add_executable(wall_detector src/wall_detector.cpp)
 # )
 target_link_libraries(wall_detector
   ${catkin_LIBRARIES}
-  ${PCL_LIBRARIES} libvtkCommon.so libvtkFiltering.so libvtkRendering.so
+  ${PCL_LIBRARIES} libvtkCommon.so libvtkFiltering.so libvtkRendering.so libvtkGraphics.so
 )
 
 #############
