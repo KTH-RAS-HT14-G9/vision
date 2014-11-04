@@ -35,16 +35,12 @@ void callback_point_cloud(const WallExtractor::SharedPointCloud& pcloud)
     _pcloud = pcloud;
 }
 
-void callback_camera_matrix(const sensor_msgs::CameraInfoConstPtr& matrix)
+void callback_camera_matrix(const sensor_msgs::CameraInfoConstPtr& m)
 {
-    std::vector<double>& D = matrix->D;
-    std::vector<double>& K = matrix->K;
-    std::vector<double>& R = matrix->R;
-    std::vector<double>& P = matrix->P;
-    _camera_matrix <<   D[0], D[1], D[2], D[3],
-                        K[0], K[1], K[2], K[3],
-                        R[0], R[1], R[2], R[3],
-                        P[0], P[1], P[2], P[3];
+    _camera_matrix <<   m->D[0], m->D[1], m->D[2], m->D[3],
+                        m->K[0], m->K[1], m->K[2], m->K[3],
+                        m->R[0], m->R[1], m->R[2], m->R[3],
+                        m->P[0], m->P[1], m->P[2], m->P[3];
 
     _extractor.set_camera_matrix(_camera_matrix);
 }
