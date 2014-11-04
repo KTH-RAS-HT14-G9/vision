@@ -16,6 +16,8 @@ WallExtractor _extractor;
 WallExtractor::SharedPointCloud _pcloud;
 
 double _distance_threshold = 0.1; std::string _distance_threshold_key = "/vision/walls/distThresh";
+double _leaf_size = 0.1; std::string _leaf_size_key = "/vision/walls/leafSize";
+double _halt_condition = 0.1; std::string _halt_condition_key = "/vision/walls/haltCondition";
 
 //------------------------------------------------------------------------------
 // Callbacks
@@ -44,7 +46,7 @@ WallExtractor::PointCloud::Ptr testcase() {
     {
         cloud->points[i].x = 60 * rand () / (RAND_MAX + 1.0f);
         cloud->points[i].y = 30 * rand () / (RAND_MAX + 1.0f);
-        cloud->points[i].z = 0.0;
+        cloud->points[i].z = 0.2 * rand () / (RAND_MAX + 1.0f);
     }
     k+=300;
 
@@ -118,6 +120,10 @@ int main(int argc, char **argv)
 
     ros::NodeHandle n;
     n.setParam(_distance_threshold_key, _distance_threshold);
+    n.setParam(_leaf_size_key, _leaf_size);
+    n.setParam(_halt_condition_key, _halt_condition);
+
+    Eigen::Vector3d leaf_size(_leaf_size,_leaf_size,_leaf_size);
 
     ros::Subscriber sub_pcloud = n.subscribe<pcl::PointCloud<pcl::PointXYZ> >
             ("/camera/point_cloud", 3, callback_point_cloud);
@@ -128,9 +134,13 @@ int main(int argc, char **argv)
 
     while(n.ok())
     {
-        n.getParamCached(_distance_threshold_key,_distance_threshold);
+        n.getParamCached(_distance_threshold_key, _distance_threshold);
+        n.getParamCached(_leaf_size_key, _leaf_size);
+        n.getParamCached(_halt_condition_key, _halt_condition);
 
-        WallExtractor::WallsPtr walls = _extractor.extract(_pcloud, _distance_threshold);
+        leaf_size.setConstant(_leaf_size);
+
+        WallExtractor::WallsPtr walls = _extractor.extract(_pcloud, _distance_threshold, _halt_condition, leaf_size);
 
         pub_walls.publish(generate_walls_msg(walls));
 
