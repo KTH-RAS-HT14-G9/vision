@@ -1,5 +1,5 @@
 #include <ros/ros.h>
-#include "wall_extractor.h"
+#include "wall_detector/wall_extractor.h"
 #include <pcl_ros/point_cloud.h>
 #include <pcl/point_types.h>
 #include <wall_detector/Walls.h>

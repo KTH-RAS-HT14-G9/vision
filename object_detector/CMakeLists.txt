@@ -1,15 +1,14 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(wall_detector)
-
-#set(CMAKE_BUILD_TYPE Debug)
+project(object_detector)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
-  pcl_ros
   roscpp
   std_msgs
+  pcl_ros
+  cv_bridge
   message_generation
 )
 
@@ -82,12 +81,12 @@ generate_messages(
 ## LIBRARIES: libraries you create in this project that dependent projects also need
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
-#catkin_package(
+catkin_package(
 #  INCLUDE_DIRS include
-#  LIBRARIES wall_detector
-#  CATKIN_DEPENDS pcl_ros roscpp std_msgs message_runtime
+#  LIBRARIES object_detector
+#  CATKIN_DEPENDS roscpp std_msgs
 #  DEPENDS system_lib
-#)
+)
 
 ###########
 ## Build ##
@@ -99,29 +98,35 @@ generate_messages(
 include_directories(
   include
   ${catkin_INCLUDE_DIRS}
-  "/usr/include/vtk-5.8"
+  "/usr/indlude/vtk-5.8"
 )
 
 ## Declare a cpp library
-# add_library(wall_detector
-#   src/${PROJECT_NAME}/wall_detector.cpp
-# )
+add_library(wall_extractor
+  src/wall_extractor.cpp
+)
 
 ## Declare a cpp executable
-# add_executable(wall_detector_node src/wall_detector_node.cpp)
+# add_executable(object_detector_node src/object_detector_node.cpp)
+add_executable(object_detector src/object_detector.cpp)
 add_executable(wall_detector src/wall_detector.cpp)
 
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
-# add_dependencies(wall_detector_node wall_detector_generate_messages_cpp)
+# add_dependencies(object_detector_node object_detector_generate_messages_cpp)
+# add_dependencies(wall_detector wall_extractor)
 
 ## Specify libraries to link a library or executable target against
-# target_link_libraries(wall_detector_node
+# target_link_libraries(object_detector_node
 #   ${catkin_LIBRARIES}
 # )
+target_link_libraries(object_detector
+  ${catkin_LIBRARIES}
+)
 target_link_libraries(wall_detector
   ${catkin_LIBRARIES}
   ${PCL_LIBRARIES} libvtkCommon.so libvtkFiltering.so libvtkRendering.so libvtkGraphics.so
+  wall_extractor
 )
 
 #############
@@ -139,17 +144,18 @@ target_link_libraries(wall_detector
 # )
 
 ## Mark executables and/or libraries for installation
-# install(TARGETS wall_detector wall_detector_node
+# install(TARGETS object_detector object_detector_node
 #   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
 #   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
 #   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 # )
 
 ## Mark cpp header files for installation
-#install(DIRECTORY include/${PROJECT_NAME}/
-#  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
-#  FILES_MATCHING PATTERN "*.h"
-#)
+# install(DIRECTORY include/${PROJECT_NAME}/
+#   DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
+#   FILES_MATCHING PATTERN "*.h"
+#   PATTERN ".svn" EXCLUDE
+# )
 
 ## Mark other files for installation (e.g. launch and bag files, etc.)
 # install(FILES
@@ -163,7 +169,7 @@ target_link_libraries(wall_detector
 #############
 
 ## Add gtest based cpp test target and link libraries
-# catkin_add_gtest(${PROJECT_NAME}-test test/test_wall_detector.cpp)
+# catkin_add_gtest(${PROJECT_NAME}-test test/test_object_detector.cpp)
 # if(TARGET ${PROJECT_NAME}-test)
 #   target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
 # endif()
