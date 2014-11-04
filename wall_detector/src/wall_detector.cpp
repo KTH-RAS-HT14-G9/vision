@@ -136,7 +136,7 @@ int main(int argc, char **argv)
     Eigen::Vector3d leaf_size(_leaf_size,_leaf_size,_leaf_size);
 
     ros::Subscriber sub_pcloud = n.subscribe<pcl::PointCloud<pcl::PointXYZ> >
-            ("/camera/point_cloud", 3, callback_point_cloud);
+            ("/camera/depth/points", 3, callback_point_cloud);
 
     ros::Publisher pub_walls = n.advertise<wall_detector::Walls>("/vision/walls",10);
 
