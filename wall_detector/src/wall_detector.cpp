@@ -23,9 +23,9 @@ double _leaf_size = 0.02; std::string _leaf_size_key = "/vision/walls/leafSize";
 double _halt_condition = 0.2; std::string _halt_condition_key = "/vision/walls/haltCondition";
 
 double _frustum_near = 0.3; std::string _frustum_near_key = "vision/walls/frustum/near";
-double _frustum_far  = 3.0; std::string _frustum_far_key  = "vision/walls/frustum/far";
+double _frustum_far  = 1.7; std::string _frustum_far_key  = "vision/walls/frustum/far";
 double _frustum_horz_fov = 60.0; std::string _frustum_horz_fov_key = "vision/walls/frustum/horzFOV";
-double _frustum_vert_fov = 45.0; std::string _frustum_vert_fov_key = "vision/walls/frustum/vertFOV";
+double _frustum_vert_fov = 50.0; std::string _frustum_vert_fov_key = "vision/walls/frustum/vertFOV";
 
 //------------------------------------------------------------------------------
 // Callbacks
@@ -150,8 +150,8 @@ int main(int argc, char **argv)
 
     ros::Subscriber sub_pcloud = n.subscribe<pcl::PointCloud<pcl::PointXYZ> >
             ("/camera/depth/points", 3, callback_point_cloud);
-    ros::Subscriber sub_camera_m = n.subscribe<sensor_msgs::CameraInfo>
-            ("/camera/ir/camera_info", 1, callback_camera_matrix);
+//    ros::Subscriber sub_camera_m = n.subscribe<sensor_msgs::CameraInfo>
+//            ("/camera/ir/camera_info", 1, callback_camera_matrix);
 
     ros::Publisher pub_walls = n.advertise<wall_detector::Walls>("/vision/walls",10);
 
