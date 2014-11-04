@@ -19,6 +19,11 @@ double _distance_threshold = 0.01; std::string _distance_threshold_key = "/visio
 double _leaf_size = 0.02; std::string _leaf_size_key = "/vision/walls/leafSize";
 double _halt_condition = 0.2; std::string _halt_condition_key = "/vision/walls/haltCondition";
 
+double _frustum_near = 0.3; std::string _frustum_near_key = "vision/walls/frustum/near";
+double _frustum_far  = 3.0; std::string _frustum_far_key  = "vision/walls/frustum/far";
+double _frustum_horz_fov = 60.0; std::string _frustum_horz_fov_key = "vision/walls/frustum/horzFOV";
+double _frustum_vert_fov = 45.0; std::string _frustum_vert_fov_key = "vision/walls/frustum/vertFOV";
+
 //------------------------------------------------------------------------------
 // Callbacks
 
@@ -122,6 +127,11 @@ int main(int argc, char **argv)
     n.setParam(_distance_threshold_key, _distance_threshold);
     n.setParam(_leaf_size_key, _leaf_size);
     n.setParam(_halt_condition_key, _halt_condition);
+    //frustum:
+    n.setParam(_frustum_near_key, _frustum_near);
+    n.setParam(_frustum_far_key, _frustum_far);
+    n.setParam(_frustum_horz_fov_key, _frustum_horz_fov);
+    n.setParam(_frustum_vert_fov_key, _frustum_vert_fov);
 
     Eigen::Vector3d leaf_size(_leaf_size,_leaf_size,_leaf_size);
 
@@ -137,8 +147,13 @@ int main(int argc, char **argv)
         n.getParamCached(_distance_threshold_key, _distance_threshold);
         n.getParamCached(_leaf_size_key, _leaf_size);
         n.getParamCached(_halt_condition_key, _halt_condition);
+        n.getParamCached(_frustum_near_key, _frustum_near);
+        n.getParamCached(_frustum_far_key, _frustum_far);
+        n.getParamCached(_frustum_horz_fov_key, _frustum_horz_fov);
+        n.getParamCached(_frustum_vert_fov_key, _frustum_vert_fov);
 
         leaf_size.setConstant(_leaf_size);
+        _extractor.set_frustum_culling(_frustum_near, _frustum_far, _frustum_horz_fov, _frustum_vert_fov);
 
         WallExtractor::WallsPtr walls = _extractor.extract(_pcloud, _distance_threshold, _halt_condition, leaf_size);
 

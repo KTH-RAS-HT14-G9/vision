@@ -13,6 +13,7 @@
 #include <pcl/sample_consensus/method_types.h>
 #include <pcl/sample_consensus/model_types.h>
 #include <pcl/segmentation/sac_segmentation.h>
+#include <pcl/filters/frustum_culling.h>
 
 #include <Eigen/Core>
 
@@ -60,12 +61,19 @@ public:
 
     WallExtractor();
 
+    void set_frustum_culling(float near_plane_dist,
+                             float far_plane_dist,
+                             float horizontal_fov,
+                             float vertical_fov);
+
     WallsPtr extract(const SharedPointCloud &cloud,
-                                      double distance_threshold,
-                                      double halt_condition,
-                                      const Eigen::Vector3d& voxel_leaf_size);
+                     double distance_threshold,
+                     double halt_condition,
+                     const Eigen::Vector3d& voxel_leaf_size);
 
 protected:
+    pcl::FrustumCulling<pcl::PointXYZ> _frustum;
+
     pcl::SACSegmentation<pcl::PointXYZ> _seg;
     PointCloud::Ptr _cloud_filtered, _cloud_p, _cloud_f;
     pcl::ExtractIndices<pcl::PointXYZ> _extract;
@@ -81,6 +89,8 @@ protected:
 private:
 #if ENABLE_VISUALIZATION==1
     pcl::visualization::PCLVisualizer _viewer;
+    pcl::ProjectInliers<pcl::PointXYZ> _proj;
+    pcl::ConvexHull<pcl::PointXYZ> _hull;
     std::vector<Color> _colors;
 
     static void AddPCL(pcl::visualization::PCLVisualizer& vis, const SharedPointCloud& cloud, const std::string& key, int r, int g, int b)
@@ -107,6 +117,9 @@ private:
 };
 
 WallExtractor::WallExtractor() {
+
+    set_frustum_culling(0.01f, 10.0f, 60.0f, 45.0f);
+
     // Optional
     _seg.setOptimizeCoefficients (true);
     // Mandatory
@@ -123,12 +136,25 @@ WallExtractor::WallExtractor() {
     _viewer.addCoordinateSystem (1.0);
     _viewer.initCameraParameters ();
 
+    _proj.setModelType(pcl::SACMODEL_PLANE);
+
     _colors.push_back(WallExtractor::Color(255,0,0));
     _colors.push_back(WallExtractor::Color(0,255,0));
     _colors.push_back(WallExtractor::Color(0,0,255));
     _colors.push_back(WallExtractor::Color(255,255,0));
     _colors.push_back(WallExtractor::Color(0,255,255));
 #endif
+}
+
+void WallExtractor::set_frustum_culling(float near_plane_dist,
+                                        float far_plane_dist,
+                                        float horizontal_fov,
+                                        float vertical_fov)
+{
+    _frustum.setNearPlaneDistance(near_plane_dist);
+    _frustum.setFarPlaneDistance(far_plane_dist);
+    _frustum.setHorizontalFOV(horizontal_fov);
+    _frustum.setVerticalFOV(vertical_fov);
 }
 
 /**
@@ -165,10 +191,15 @@ WallExtractor::WallsPtr WallExtractor::extract(const SharedPointCloud &cloud,
     _viewer.removeAllShapes();
 #endif
 
+    //Filter all points in frustum
+    _frustum.setInputCloud(cloud);
+    _frustum.filter(*_cloud_f);
+
     // Create the filtering object: downsample the dataset using the given leaf size
-    _downsampler.setInputCloud (cloud);
+    _downsampler.setInputCloud (_cloud_f);
     _downsampler.setLeafSize (voxel_leaf_size(0), voxel_leaf_size(1), voxel_leaf_size(2));
     _downsampler.filter (*_cloud_filtered);
+    _cloud_f->clear();
 
 
     WallExtractor::WallsPtr walls(new std::vector<SegmentedWall>);
@@ -216,17 +247,14 @@ WallExtractor::WallsPtr WallExtractor::extract(const SharedPointCloud &cloud,
 
         PointCloud::Ptr cloud_projected = PointCloud::Ptr(new PointCloud);
 
-        ProjectInliers<PointXYZ> proj;
-        proj.setModelType (SACMODEL_PLANE);
-        proj.setInputCloud (_cloud_p);
-        proj.setModelCoefficients (coefficients);
-        proj.filter (*cloud_projected);
+        _proj.setInputCloud (_cloud_p);
+        _proj.setModelCoefficients (coefficients);
+        _proj.filter (*cloud_projected);
 
         PointCloud::Ptr cloud_hull = PointCloud::Ptr(new PointCloud);
-        ConvexHull<PointXYZ> hull;
-        hull.setInputCloud(cloud_projected);
-        hull.reconstruct(*cloud_hull);
-        hull.setDimension(2);
+        _hull.setInputCloud(cloud_projected);
+        _hull.reconstruct(*cloud_hull);
+        _hull.setDimension(2);
 
         _viewer.addPolygon<PointXYZ>(cloud_hull, _colors[i].r, _colors[i].g, _colors[i].b, ss.str());
 #endif
