@@ -15,9 +15,9 @@ const double PUBLISH_FREQUENCY = 10.0;
 WallExtractor _extractor;
 WallExtractor::SharedPointCloud _pcloud;
 
-double _distance_threshold = 0.1; std::string _distance_threshold_key = "/vision/walls/distThresh";
-double _leaf_size = 0.1; std::string _leaf_size_key = "/vision/walls/leafSize";
-double _halt_condition = 0.1; std::string _halt_condition_key = "/vision/walls/haltCondition";
+double _distance_threshold = 0.01; std::string _distance_threshold_key = "/vision/walls/distThresh";
+double _leaf_size = 0.02; std::string _leaf_size_key = "/vision/walls/leafSize";
+double _halt_condition = 0.2; std::string _halt_condition_key = "/vision/walls/haltCondition";
 
 //------------------------------------------------------------------------------
 // Callbacks
@@ -113,7 +113,7 @@ WallsMsgPtr generate_walls_msg(const WallExtractor::WallsPtr& data)
 
 int main(int argc, char **argv)
 {
-    _pcloud = testcase();
+//    _pcloud = testcase();
 //    return 0;
 
     ros::init(argc, argv, "wall_detector");
