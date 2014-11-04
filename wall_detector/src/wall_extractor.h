@@ -103,9 +103,9 @@ WallExtractor::WallExtractor() {
     set_frustum_culling(0.01f, 10.0f, 60.0f, 45.0f);
     //set_camera_matrix()
     Eigen::Matrix4f cam2robot;
-    cam2robot << 1, 0, 0, 0,
+    cam2robot << 0, 0, 1, 0,
                  0,-1, 0, 0,
-                 0, 0, 1, 0,
+                 1, 0, 0, 0,
                  0, 0, 0, 1;
     _frustum.setCameraPose(cam2robot);
 
@@ -138,9 +138,9 @@ WallExtractor::WallExtractor() {
 void WallExtractor::set_camera_matrix(const Eigen::Matrix4f& m)
 {
     Eigen::Matrix4f cam2robot;
-    cam2robot << 1, 0, 0, 0,
+    cam2robot << 0, 0, 1, 0,
                  0,-1, 0, 0,
-                 0, 0, 1, 0,
+                 1, 0, 0, 0,
                  0, 0, 0, 1;
     _frustum.setCameraPose(m * cam2robot);
 }
