@@ -3,6 +3,8 @@
 #include <pcl_ros/point_cloud.h>
 #include <pcl/point_types.h>
 #include <wall_detector/Walls.h>
+#include <sensor_msgs/CameraInfo.h>
+#include <Eigen/Core>
 
 //------------------------------------------------------------------------------
 // Constants
@@ -14,6 +16,7 @@ const double PUBLISH_FREQUENCY = 10.0;
 
 WallExtractor _extractor;
 WallExtractor::SharedPointCloud _pcloud;
+Eigen::Matrix4f _camera_matrix;
 
 double _distance_threshold = 0.01; std::string _distance_threshold_key = "/vision/walls/distThresh";
 double _leaf_size = 0.02; std::string _leaf_size_key = "/vision/walls/leafSize";
@@ -30,6 +33,20 @@ double _frustum_vert_fov = 45.0; std::string _frustum_vert_fov_key = "vision/wal
 void callback_point_cloud(const WallExtractor::SharedPointCloud& pcloud)
 {
     _pcloud = pcloud;
+}
+
+void callback_camera_matrix(const sensor_msgs::CameraInfoConstPtr& matrix)
+{
+    std::vector<double>& D = matrix->D;
+    std::vector<double>& K = matrix->K;
+    std::vector<double>& R = matrix->R;
+    std::vector<double>& P = matrix->P;
+    _camera_matrix <<   D[0], D[1], D[2], D[3],
+                        K[0], K[1], K[2], K[3],
+                        R[0], R[1], R[2], R[3],
+                        P[0], P[1], P[2], P[3];
+
+    _extractor.set_camera_matrix(_camera_matrix);
 }
 
 //------------------------------------------------------------------------------
@@ -137,6 +154,8 @@ int main(int argc, char **argv)
 
     ros::Subscriber sub_pcloud = n.subscribe<pcl::PointCloud<pcl::PointXYZ> >
             ("/camera/depth/points", 3, callback_point_cloud);
+    ros::Subscriber sub_camera_m = n.subscribe<sensor_msgs::CameraInfo>
+            ("/camera/ir/camera_info", 1, callback_camera_matrix);
 
     ros::Publisher pub_walls = n.advertise<wall_detector::Walls>("/vision/walls",10);
 

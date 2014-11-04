@@ -30,26 +30,6 @@
 #include <pcl/filters/project_inliers.h>
 #endif
 
-/*class Wall {
-public:
-    Wall(const pcl::PointCloud<pcl::PointXYZ>::ConstPtr& original,
-         const pcl::ModelCoefficientsConstPtr& coefficients,
-         const pcl::PointIndicesConstPtr& inliers)
-    {
-        _original_cloud = original;
-        _coefficients = coefficients;
-        _inliers = inliers;
-    }
-
-    pcl::PointCloud<pcl::PointXYZ>::ConstPtr get_original_cloud() { return _original_cloud; }
-    pcl::ModelCoefficientsConstPtr get_coefficients() { return _coefficients; }
-    pcl::PointIndicesConstPtr get_inliers() { return _inliers; }
-
-protected:
-    pcl::PointCloud<pcl::PointXYZ>::ConstPtr _original_cloud;
-    pcl::ModelCoefficientsConstPtr _coefficients;
-    pcl::PointIndicesConstPtr _inliers;
-};*/
 
 class WallExtractor
 {
@@ -65,6 +45,8 @@ public:
                              float far_plane_dist,
                              float horizontal_fov,
                              float vertical_fov);
+
+    void set_camera_matrix(const Eigen::Matrix4f& m);
 
     WallsPtr extract(const SharedPointCloud &cloud,
                      double distance_threshold,
@@ -119,6 +101,13 @@ private:
 WallExtractor::WallExtractor() {
 
     set_frustum_culling(0.01f, 10.0f, 60.0f, 45.0f);
+    //set_camera_matrix()
+    Eigen::Matrix4f cam2robot;
+    cam2robot << 1, 0, 0, 0,
+                 0,-1, 0, 0,
+                 0, 0, 1, 0,
+                 0, 0, 0, 1;
+    _frustum.setCameraPose(cam2robot);
 
     // Optional
     _seg.setOptimizeCoefficients (true);
@@ -144,6 +133,16 @@ WallExtractor::WallExtractor() {
     _colors.push_back(WallExtractor::Color(255,255,0));
     _colors.push_back(WallExtractor::Color(0,255,255));
 #endif
+}
+
+void WallExtractor::set_camera_matrix(const Eigen::Matrix4f& m)
+{
+    Eigen::Matrix4f cam2robot;
+    cam2robot << 1, 0, 0, 0,
+                 0,-1, 0, 0,
+                 0, 0, 1, 0,
+                 0, 0, 0, 1;
+    _frustum.setCameraPose(m * cam2robot);
 }
 
 void WallExtractor::set_frustum_culling(float near_plane_dist,
