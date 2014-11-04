@@ -24,6 +24,9 @@
 #include <pcl/common/common_headers.h>
 #include <pcl/features/normal_3d.h>
 #include <pcl/io/pcd_io.h>
+#include <pcl/common/centroid.h>
+#include <pcl/surface/convex_hull.h>
+#include <pcl/filters/project_inliers.h>
 #endif
 
 /*class Wall {
@@ -207,7 +210,25 @@ WallExtractor::WallsPtr WallExtractor::extract(const SharedPointCloud &cloud,
         else
             WallExtractor::AddPCL(_viewer, _cloud_p, ss.str());
 
-        _viewer.addPlane(*coefficients,0,0,0,ss.str());
+        //Eigen::Vector4d centroid;
+        //compute3DCentroid<PointXYZ>(*_cloud_p, centroid);
+        //_viewer.addPlane(*coefficients,centroid(0),centroid(1),centroid(2),ss.str());
+
+        PointCloud::Ptr cloud_projected = PointCloud::Ptr(new PointCloud);
+
+        ProjectInliers<PointXYZ> proj;
+        proj.setModelType (SACMODEL_PLANE);
+        proj.setInputCloud (_cloud_p);
+        proj.setModelCoefficients (coefficients);
+        proj.filter (*cloud_projected);
+
+        PointCloud::Ptr cloud_hull = PointCloud::Ptr(new PointCloud);
+        ConvexHull<PointXYZ> hull;
+        hull.setInputCloud(cloud_projected);
+        hull.reconstruct(*cloud_hull);
+        hull.setDimension(2);
+
+        _viewer.addPolygon<PointXYZ>(cloud_hull, _colors[i].r, _colors[i].g, _colors[i].b, ss.str());
 #endif
 
         // Create the filtering object
@@ -224,11 +245,6 @@ WallExtractor::WallsPtr WallExtractor::extract(const SharedPointCloud &cloud,
 
     //viewer.resetCamera();
     _viewer.spinOnce(100);
-    /*while (!viewer.wasStopped ())
-    {
-        viewer.spinOnce (100);
-        boost::this_thread::sleep (boost::posix_time::microseconds (100000));
-    }*/
 #endif
 
     return walls;
