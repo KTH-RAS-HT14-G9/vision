@@ -10,6 +10,7 @@ find_package(catkin REQUIRED COMPONENTS
   pcl_ros
   cv_bridge
   message_generation
+  common
 )
 
 ## System dependencies are found with CMake's conventions
@@ -97,6 +98,7 @@ catkin_package(
 # include_directories(include)
 include_directories(
   include
+  ${common_INCLUDE_DIRS}
   ${catkin_INCLUDE_DIRS}
   "/usr/indlude/vtk-5.8"
 )
@@ -109,7 +111,7 @@ add_library(wall_extractor
 ## Declare a cpp executable
 # add_executable(object_detector_node src/object_detector_node.cpp)
 add_executable(object_detector src/object_detector.cpp)
-add_executable(wall_detector src/wall_detector.cpp)
+add_executable(wall_colorizer src/wall_colorizer.cpp)
 
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
@@ -122,8 +124,10 @@ add_executable(wall_detector src/wall_detector.cpp)
 # )
 target_link_libraries(object_detector
   ${catkin_LIBRARIES}
+  ${PCL_LIBRARIES} libvtkCommon.so libvtkFiltering.so libvtkRendering.so libvtkGraphics.so
+  wall_extractor
 )
-target_link_libraries(wall_detector
+target_link_libraries(wall_colorizer
   ${catkin_LIBRARIES}
   ${PCL_LIBRARIES} libvtkCommon.so libvtkFiltering.so libvtkRendering.so libvtkGraphics.so
   wall_extractor

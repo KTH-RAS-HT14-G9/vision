@@ -17,6 +17,9 @@ public:
     pcl::ModelCoefficientsConstPtr get_coefficients() { return _coefficients; }
     pcl::PointIndicesConstPtr get_inliers() { return _inliers; }
 
+    //typedefs
+    typedef boost::shared_ptr<std::vector<SegmentedWall> > ArrayPtr;
+
 protected:
     pcl::ModelCoefficientsConstPtr _coefficients;
     pcl::PointIndicesConstPtr _inliers;

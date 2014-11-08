@@ -1,6 +1,9 @@
 #include "wall_detector/wall_extractor.h"
+#include <common/types.h>
 
 WallExtractor::WallExtractor() {
+
+    using namespace common;
 
     set_frustum_culling(0.01f, 10.0f, 60.0f, 45.0f);
     //set_camera_matrix()
@@ -76,11 +79,13 @@ void WallExtractor::set_frustum_culling(float near_plane_dist,
   * @return Shared pointer of array of @link(WallExtractor::Wall). Empty if no
   *         walls found.
   */
-WallExtractor::WallsPtr WallExtractor::extract(const SharedPointCloud &cloud,
+SegmentedWall::ArrayPtr WallExtractor::extract(const common::SharedPointCloud &cloud,
                                         double distance_threshold = 0.01,
                                         double halt_condition = 0.1,
                                         const Eigen::Vector3d& voxel_leaf_size = Eigen::Vector3d(0.1,0.1,0.1))
 {
+    using common::PointCloud;
+    using common::SharedPointCloud;
     using namespace pcl;
 
     _cloud_filtered->clear();
@@ -103,7 +108,7 @@ WallExtractor::WallsPtr WallExtractor::extract(const SharedPointCloud &cloud,
     _cloud_f->clear();
 
 
-    WallExtractor::WallsPtr walls(new std::vector<SegmentedWall>);
+    SegmentedWall::ArrayPtr walls(new std::vector<SegmentedWall>);
 
     _seg.setDistanceThreshold (distance_threshold);
 
@@ -142,9 +147,9 @@ WallExtractor::WallsPtr WallExtractor::extract(const SharedPointCloud &cloud,
         else
             WallExtractor::AddPCL(_viewer, _cloud_p, ss.str());
 
-        //Eigen::Vector4d centroid;
+        Eigen::Vector4d centroid;
         //compute3DCentroid<PointXYZ>(*_cloud_p, centroid);
-        //_viewer.addPlane(*coefficients,centroid(0),centroid(1),centroid(2),ss.str());
+        _viewer.addPlane(*coefficients,centroid(0),centroid(1),centroid(2),ss.str());
 
         PointCloud::Ptr cloud_projected = PointCloud::Ptr(new PointCloud);
 

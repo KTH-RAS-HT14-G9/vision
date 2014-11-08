@@ -1,9 +1,10 @@
 #ifndef WALL_EXTRACTOR_H
 #define WALL_EXTRACTOR_H
 
-#define ENABLE_VISUALIZATION 0
+#define ENABLE_VISUALIZATION 1
 
 #include "wall_detector/segmented_wall.h"
+#include <common/types.h>
 
 #include <pcl/ModelCoefficients.h>
 #include <pcl/point_types.h>
@@ -30,14 +31,15 @@
 #include <pcl/filters/project_inliers.h>
 #endif
 
+/**
+  * Thoughts:
+  * - Discard planes with too few supporting points
+  * - Only take 5 strongest planes
+  */
 
 class WallExtractor
 {
 public:
-    typedef pcl::PointCloud<pcl::PointXYZ> PointCloud;
-    typedef PointCloud::ConstPtr SharedPointCloud;
-
-    typedef boost::shared_ptr<std::vector<SegmentedWall> > WallsPtr;
 
     WallExtractor();
 
@@ -48,7 +50,7 @@ public:
 
     void set_camera_matrix(const Eigen::Matrix4f& m);
 
-    WallsPtr extract(const SharedPointCloud &cloud,
+    SegmentedWall::ArrayPtr extract(const common::SharedPointCloud &cloud,
                      double distance_threshold,
                      double halt_condition,
                      const Eigen::Vector3d& voxel_leaf_size);
@@ -57,7 +59,7 @@ protected:
     pcl::FrustumCulling<pcl::PointXYZ> _frustum;
 
     pcl::SACSegmentation<pcl::PointXYZ> _seg;
-    PointCloud::Ptr _cloud_filtered, _cloud_p, _cloud_f;
+    common::PointCloud::Ptr _cloud_filtered, _cloud_p, _cloud_f;
     pcl::ExtractIndices<pcl::PointXYZ> _extract;
     pcl::VoxelGrid<pcl::PointXYZ> _downsampler;
 
@@ -75,20 +77,20 @@ private:
     pcl::ConvexHull<pcl::PointXYZ> _hull;
     std::vector<Color> _colors;
 
-    static void AddPCL(pcl::visualization::PCLVisualizer& vis, const SharedPointCloud& cloud, const std::string& key, int r, int g, int b)
+    static void AddPCL(pcl::visualization::PCLVisualizer& vis, const common::SharedPointCloud& cloud, const std::string& key, int r, int g, int b)
     {
         pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> color(cloud,r,g,b);
         WallExtractor::AddPCL(vis,cloud,key,color);
     }
 
-    static void AddPCL(pcl::visualization::PCLVisualizer& vis, const SharedPointCloud& cloud, const std::string& key)
+    static void AddPCL(pcl::visualization::PCLVisualizer& vis, const common::SharedPointCloud& cloud, const std::string& key)
     {
         pcl::visualization::PointCloudColorHandlerRandom<pcl::PointXYZ> color(cloud);
         WallExtractor::AddPCL(vis,cloud,key,color);
     }
 
     static void AddPCL(pcl::visualization::PCLVisualizer& vis,
-                const SharedPointCloud& cloud,
+                const common::SharedPointCloud& cloud,
                 const std::string& key,
                 pcl::visualization::PointCloudColorHandler<pcl::PointXYZ>& color)
     {

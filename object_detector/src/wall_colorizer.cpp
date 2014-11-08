@@ -5,6 +5,7 @@
 #include <wall_detector/Walls.h>
 #include <sensor_msgs/CameraInfo.h>
 #include <Eigen/Core>
+#include <common/parameter.h>
 
 //------------------------------------------------------------------------------
 // Constants
@@ -14,23 +15,23 @@ const double PUBLISH_FREQUENCY = 10.0;
 //------------------------------------------------------------------------------
 // Member variables
 
-WallExtractor _extractor;
-WallExtractor::SharedPointCloud _pcloud;
+WallExtractor _wall_extractor;
+common::SharedPointCloud _pcloud;
 Eigen::Matrix4f _camera_matrix;
 
-double _distance_threshold = 0.01; std::string _distance_threshold_key = "/vision/walls/distThresh";
-double _leaf_size = 0.02; std::string _leaf_size_key = "/vision/walls/leafSize";
-double _halt_condition = 0.2; std::string _halt_condition_key = "/vision/walls/haltCondition";
+Parameter<double> _distance_threshold("/vision/walls/dist_thres", 0.01);
+Parameter<double> _leaf_size("/vision/walls/leaf_size", 0.02);
+Parameter<double> _halt_condition("/vision/walls/halt_condition", 0.2);
 
-double _frustum_near = 0.3; std::string _frustum_near_key = "vision/walls/frustum/near";
-double _frustum_far  = 1.7; std::string _frustum_far_key  = "vision/walls/frustum/far";
-double _frustum_horz_fov = 60.0; std::string _frustum_horz_fov_key = "vision/walls/frustum/horzFOV";
-double _frustum_vert_fov = 50.0; std::string _frustum_vert_fov_key = "vision/walls/frustum/vertFOV";
+Parameter<double> _frustum_near("/vision/walls/frustum/near", 0.3);
+Parameter<double> _frustum_far("/vision/walls/frustum/far", 1.7);
+Parameter<double> _frustum_horz_fov("/vision/walls/frustum/horz_fov", 60.0);
+Parameter<double> _frustum_vert_fov("/vision/walls/frustum/vert_fov", 50.0);
 
 //------------------------------------------------------------------------------
 // Callbacks
 
-void callback_point_cloud(const WallExtractor::SharedPointCloud& pcloud)
+void callback_point_cloud(const common::SharedPointCloud& pcloud)
 {
     _pcloud = pcloud;
 }
@@ -42,15 +43,15 @@ void callback_camera_matrix(const sensor_msgs::CameraInfoConstPtr& m)
                         m->R[0], m->R[1], m->R[2], m->R[3],
                         m->P[0], m->P[1], m->P[2], m->P[3];
 
-    _extractor.set_camera_matrix(_camera_matrix);
+    _wall_extractor.set_camera_matrix(_camera_matrix);
 }
 
 //------------------------------------------------------------------------------
 // Test cases
 
-WallExtractor::PointCloud::Ptr testcase() {
+common::PointCloud::Ptr testcase() {
 
-    WallExtractor::PointCloud::Ptr cloud(new WallExtractor::PointCloud);
+    common::PointCloud::Ptr cloud(new common::PointCloud);
 
     // Fill in the cloud data
     cloud->width  = 150+300+150+100;
@@ -107,7 +108,7 @@ void append_all(std::vector<T>& a, const std::vector<T>& b)
 }
 
 typedef boost::shared_ptr<wall_detector::Walls> WallsMsgPtr;
-WallsMsgPtr generate_walls_msg(const WallExtractor::WallsPtr& data)
+WallsMsgPtr generate_walls_msg(const SegmentedWall::ArrayPtr& data)
 {
     WallsMsgPtr msg(new wall_detector::Walls);
 
@@ -134,19 +135,11 @@ int main(int argc, char **argv)
 //    _pcloud = testcase();
 //    return 0;
 
-    ros::init(argc, argv, "wall_detector");
+    ros::init(argc, argv, "wall_colorizer");
 
     ros::NodeHandle n;
-    n.setParam(_distance_threshold_key, _distance_threshold);
-    n.setParam(_leaf_size_key, _leaf_size);
-    n.setParam(_halt_condition_key, _halt_condition);
-    //frustum:
-    n.setParam(_frustum_near_key, _frustum_near);
-    n.setParam(_frustum_far_key, _frustum_far);
-    n.setParam(_frustum_horz_fov_key, _frustum_horz_fov);
-    n.setParam(_frustum_vert_fov_key, _frustum_vert_fov);
 
-    Eigen::Vector3d leaf_size(_leaf_size,_leaf_size,_leaf_size);
+    Eigen::Vector3d leaf_size(_leaf_size(),_leaf_size(),_leaf_size());
 
     ros::Subscriber sub_pcloud = n.subscribe<pcl::PointCloud<pcl::PointXYZ> >
             ("/camera/depth/points", 3, callback_point_cloud);
@@ -159,18 +152,10 @@ int main(int argc, char **argv)
 
     while(n.ok())
     {
-        n.getParamCached(_distance_threshold_key, _distance_threshold);
-        n.getParamCached(_leaf_size_key, _leaf_size);
-        n.getParamCached(_halt_condition_key, _halt_condition);
-        n.getParamCached(_frustum_near_key, _frustum_near);
-        n.getParamCached(_frustum_far_key, _frustum_far);
-        n.getParamCached(_frustum_horz_fov_key, _frustum_horz_fov);
-        n.getParamCached(_frustum_vert_fov_key, _frustum_vert_fov);
+        leaf_size.setConstant(_leaf_size());
+        _wall_extractor.set_frustum_culling(_frustum_near(), _frustum_far(), _frustum_horz_fov(), _frustum_vert_fov());
 
-        leaf_size.setConstant(_leaf_size);
-        _extractor.set_frustum_culling(_frustum_near, _frustum_far, _frustum_horz_fov, _frustum_vert_fov);
-
-        WallExtractor::WallsPtr walls = _extractor.extract(_pcloud, _distance_threshold, _halt_condition, leaf_size);
+        SegmentedWall::ArrayPtr walls = _wall_extractor.extract(_pcloud, _distance_threshold(), _halt_condition(), leaf_size);
 
         pub_walls.publish(generate_walls_msg(walls));
 
