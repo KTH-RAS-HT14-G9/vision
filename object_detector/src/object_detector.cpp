@@ -35,7 +35,7 @@ void callback_rgb_image(const sensor_msgs::ImageConstPtr& rgb)
 //    _detector.set_rgb_image(cvrgb);
 }
 
-void callback_walls(const wall_detector::WallsConstPtr& walls)
+void callback_walls(const object_detector::WallsConstPtr& walls)
 {
 
 }

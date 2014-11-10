@@ -7,7 +7,7 @@
 #include <eigen3/Eigen/Core>
 #include <cv_bridge/cv_bridge.h>
 #include <opencv2/imgproc/imgproc.hpp>
-#include <wall_detector/Walls.h> //TODO: replace with ros independent class
+#include <object_detector/Walls.h> //TODO: replace with ros independent class
 #include <pcl/point_types.h>
 #include <pcl/pcl_base.h>
 #include <common/types.h>
