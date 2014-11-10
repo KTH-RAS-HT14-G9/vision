@@ -1,4 +1,4 @@
-#include "obstacle_detector.h"
+#include <roi_extractor/roi_extractor.h>
 #include <sensor_msgs/Image.h>
 #include <std_msgs/Float64MultiArray.h>
 #include <wall_detector/wall_extractor.h>
@@ -61,7 +61,7 @@ int main(int argc, char **argv)
     {
         _wall_extractor.set_frustum_culling(_frustum_near(),_frustum_far(),_frustum_horz_fov(),_frustum_vert_fov());
         leaf_size.setConstant(_leaf_size());
-        SegmentedWall::ArrayPtr walls = _wall_extractor.extract(_pcloud,_distance_threshold(),_halt_condition(),leaf_size);
+        common::vision::SegmentedPlane::ArrayPtr walls = _wall_extractor.extract(_pcloud,_distance_threshold(),_halt_condition(),leaf_size);
 
         //std::vector<ROIExtractor::anomaly_blob> obstacle = _roi_extractor.detect();
 

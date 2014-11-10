@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(object_detector)
 
+#set(PCL_DIR "/usr/share/pcl-1.7/")
+
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
@@ -12,6 +14,7 @@ find_package(catkin REQUIRED COMPONENTS
   message_generation
   common
 )
+#find_package(PCL 1.7 REQUIRED)
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -99,14 +102,14 @@ catkin_package(
 include_directories(
   include
   ${common_INCLUDE_DIRS}
+  ${PCL_INCLUDE_DIRS}
+#  "/usr/indlude/vtk-5.8"
   ${catkin_INCLUDE_DIRS}
-  "/usr/indlude/vtk-5.8"
 )
 
 ## Declare a cpp library
-add_library(wall_extractor
-  src/wall_extractor.cpp
-)
+add_library(wall_extractor src/wall_extractor.cpp)
+add_library(roi_extractor src/roi_extractor.cpp)
 
 ## Declare a cpp executable
 # add_executable(object_detector_node src/object_detector_node.cpp)
@@ -116,15 +119,18 @@ add_executable(wall_colorizer src/wall_colorizer.cpp)
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
 # add_dependencies(object_detector_node object_detector_generate_messages_cpp)
-# add_dependencies(wall_detector wall_extractor)
+#add_dependencies(wall_colorizer wall_extractor)
+#add_dependencies(object_detector wall_extractor roi_extractor)
 
 ## Specify libraries to link a library or executable target against
-# target_link_libraries(object_detector_node
-#   ${catkin_LIBRARIES}
-# )
+
+target_link_libraries(roi_extractor ${PCL_LIBRARIES})
+
 target_link_libraries(object_detector
   ${catkin_LIBRARIES}
   ${PCL_LIBRARIES} libvtkCommon.so libvtkFiltering.so libvtkRendering.so libvtkGraphics.so
+  /usr/lib/libpcl_filters.so
+  roi_extractor
   wall_extractor
 )
 target_link_libraries(wall_colorizer

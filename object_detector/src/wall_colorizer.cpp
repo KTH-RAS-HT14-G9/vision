@@ -28,6 +28,9 @@ Parameter<double> _frustum_far("/vision/walls/frustum/far", 1.7);
 Parameter<double> _frustum_horz_fov("/vision/walls/frustum/horz_fov", 60.0);
 Parameter<double> _frustum_vert_fov("/vision/walls/frustum/vert_fov", 50.0);
 
+Parameter<int>    _outlier_meanK("/vision/walls/outliers/meanK", 50);
+Parameter<double> _outlier_thresh("/vision/walls/outliers/thresh", 0.5);
+
 //------------------------------------------------------------------------------
 // Callbacks
 
@@ -99,35 +102,6 @@ common::PointCloud::Ptr testcase() {
 }
 
 //------------------------------------------------------------------------------
-// Message converter
-
-template<typename T>
-void append_all(std::vector<T>& a, const std::vector<T>& b)
-{
-    a.insert(a.begin(), b.begin(), b.end());
-}
-
-typedef boost::shared_ptr<wall_detector::Walls> WallsMsgPtr;
-WallsMsgPtr generate_walls_msg(const SegmentedWall::ArrayPtr& data)
-{
-    WallsMsgPtr msg(new wall_detector::Walls);
-
-    for(int i = 0; i < data->size(); ++i)
-    {
-        wall_detector::Wall wall;
-        pcl::ModelCoefficientsConstPtr coeff = data->at(i).get_coefficients();
-        pcl::PointIndicesConstPtr inliers = data->at(i).get_inliers();
-
-        append_all<float>(wall.plane_coefficients, coeff->values);
-        append_all<int>(wall.point_cloud_inliers, inliers->indices);
-
-        msg->walls.push_back(wall);
-    }
-
-    return msg;
-}
-
-//------------------------------------------------------------------------------
 // Entry point
 
 int main(int argc, char **argv)
@@ -154,10 +128,15 @@ int main(int argc, char **argv)
     {
         leaf_size.setConstant(_leaf_size());
         _wall_extractor.set_frustum_culling(_frustum_near(), _frustum_far(), _frustum_horz_fov(), _frustum_vert_fov());
+        _wall_extractor.set_outlier_removal(_outlier_meanK(), _outlier_thresh());
 
-        SegmentedWall::ArrayPtr walls = _wall_extractor.extract(_pcloud, _distance_threshold(), _halt_condition(), leaf_size);
+        ros::Time time = ros::Time::now();
 
-        pub_walls.publish(generate_walls_msg(walls));
+        common::vision::SegmentedPlane::ArrayPtr walls = _wall_extractor.extract(_pcloud, _distance_threshold(), _halt_condition(), leaf_size);
+
+        ROS_INFO("Time spent on extracting planes: %lf\n", (ros::Time::now().toSec() - time.toSec()));
+
+        pub_walls.publish(common::vision::segmentedPlaneToMsg(walls));
 
         ros::spinOnce();
         rate.sleep();

@@ -1,9 +1,9 @@
 #ifndef WALL_EXTRACTOR_H
 #define WALL_EXTRACTOR_H
 
-#define ENABLE_VISUALIZATION 1
+#define ENABLE_VISUALIZATION_PLANES 0
 
-#include "wall_detector/segmented_wall.h"
+#include <common/segmented_plane.h>
 #include <common/types.h>
 
 #include <pcl/ModelCoefficients.h>
@@ -15,12 +15,13 @@
 #include <pcl/sample_consensus/model_types.h>
 #include <pcl/segmentation/sac_segmentation.h>
 #include <pcl/filters/frustum_culling.h>
+#include <pcl/filters/statistical_outlier_removal.h>
 
 #include <Eigen/Core>
 
-#if ENABLE_VISUALIZATION==1
+#if ENABLE_VISUALIZATION_PLANES==1
+#include <common/visualization_addons.h>
 #include <pcl/visualization/cloud_viewer.h>
-#include <pcl/visualization/pcl_visualizer.h>
 #include <pcl/visualization/point_cloud_color_handlers.h>
 #include <boost/thread/thread.hpp>
 #include <pcl/common/common_headers.h>
@@ -48,15 +49,19 @@ public:
                              float horizontal_fov,
                              float vertical_fov);
 
+    void set_outlier_removal(int meanK, double stddev_multhresh);
+
     void set_camera_matrix(const Eigen::Matrix4f& m);
 
-    SegmentedWall::ArrayPtr extract(const common::SharedPointCloud &cloud,
-                     double distance_threshold,
-                     double halt_condition,
-                     const Eigen::Vector3d& voxel_leaf_size);
+    common::vision::SegmentedPlane::ArrayPtr extract(
+            const common::SharedPointCloud &cloud,
+            double distance_threshold,
+            double halt_condition,
+            const Eigen::Vector3d& voxel_leaf_size);
 
 protected:
     pcl::FrustumCulling<pcl::PointXYZ> _frustum;
+    pcl::StatisticalOutlierRemoval<pcl::PointXYZ> _sor;
 
     pcl::SACSegmentation<pcl::PointXYZ> _seg;
     common::PointCloud::Ptr _cloud_filtered, _cloud_p, _cloud_f;
@@ -71,32 +76,11 @@ protected:
     };
 
 private:
-#if ENABLE_VISUALIZATION==1
+#if ENABLE_VISUALIZATION_PLANES==1
     pcl::visualization::PCLVisualizer _viewer;
     pcl::ProjectInliers<pcl::PointXYZ> _proj;
     pcl::ConvexHull<pcl::PointXYZ> _hull;
     std::vector<Color> _colors;
-
-    static void AddPCL(pcl::visualization::PCLVisualizer& vis, const common::SharedPointCloud& cloud, const std::string& key, int r, int g, int b)
-    {
-        pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> color(cloud,r,g,b);
-        WallExtractor::AddPCL(vis,cloud,key,color);
-    }
-
-    static void AddPCL(pcl::visualization::PCLVisualizer& vis, const common::SharedPointCloud& cloud, const std::string& key)
-    {
-        pcl::visualization::PointCloudColorHandlerRandom<pcl::PointXYZ> color(cloud);
-        WallExtractor::AddPCL(vis,cloud,key,color);
-    }
-
-    static void AddPCL(pcl::visualization::PCLVisualizer& vis,
-                const common::SharedPointCloud& cloud,
-                const std::string& key,
-                pcl::visualization::PointCloudColorHandler<pcl::PointXYZ>& color)
-    {
-        vis.addPointCloud<pcl::PointXYZ>(cloud, color, key);
-        vis.setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 3, key);
-    }
 #endif
 };
 

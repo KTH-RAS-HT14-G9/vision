@@ -6,6 +6,7 @@ WallExtractor::WallExtractor() {
     using namespace common;
 
     set_frustum_culling(0.01f, 10.0f, 60.0f, 45.0f);
+    set_outlier_removal(50,1.0);
     //set_camera_matrix()
     Eigen::Matrix4f cam2robot;
     cam2robot << 0, 0, 1, 0,
@@ -25,10 +26,11 @@ WallExtractor::WallExtractor() {
     _cloud_f = PointCloud::Ptr(new PointCloud);
 
 
-#if ENABLE_VISUALIZATION==1
+#if ENABLE_VISUALIZATION_PLANES==1
     //visualization::PCLVisualizer viewer("Viewer");
     _viewer.addCoordinateSystem (1.0);
     _viewer.initCameraParameters ();
+    _viewer.setBackgroundColor(255,255,255,0);
 
     _proj.setModelType(pcl::SACMODEL_PLANE);
 
@@ -61,6 +63,12 @@ void WallExtractor::set_frustum_culling(float near_plane_dist,
     _frustum.setVerticalFOV(vertical_fov);
 }
 
+void WallExtractor::set_outlier_removal(int meanK=50, double stddev_multhresh=1.0)
+{
+    _sor.setMeanK(meanK);
+    _sor.setStddevMulThresh(stddev_multhresh);
+}
+
 /**
   * Adapted from http://pointclouds.org/documentation/tutorials/extract_indices.php
   *
@@ -79,20 +87,26 @@ void WallExtractor::set_frustum_culling(float near_plane_dist,
   * @return Shared pointer of array of @link(WallExtractor::Wall). Empty if no
   *         walls found.
   */
-SegmentedWall::ArrayPtr WallExtractor::extract(const common::SharedPointCloud &cloud,
+common::vision::SegmentedPlane::ArrayPtr WallExtractor::extract(const common::SharedPointCloud &cloud,
                                         double distance_threshold = 0.01,
                                         double halt_condition = 0.1,
                                         const Eigen::Vector3d& voxel_leaf_size = Eigen::Vector3d(0.1,0.1,0.1))
 {
+    using pcl::ModelCoefficients;
+    using pcl::PointIndices;
+
     using common::PointCloud;
     using common::SharedPointCloud;
-    using namespace pcl;
+    using common::vision::SegmentedPlane;
+
+
+
 
     _cloud_filtered->clear();
     _cloud_p->clear();
     _cloud_f->clear();
 
-#if ENABLE_VISUALIZATION==1
+#if ENABLE_VISUALIZATION_PLANES==1
     _viewer.removeAllPointClouds();
     _viewer.removeAllShapes();
 #endif
@@ -104,11 +118,15 @@ SegmentedWall::ArrayPtr WallExtractor::extract(const common::SharedPointCloud &c
     // Create the filtering object: downsample the dataset using the given leaf size
     _downsampler.setInputCloud (_cloud_f);
     _downsampler.setLeafSize (voxel_leaf_size(0), voxel_leaf_size(1), voxel_leaf_size(2));
-    _downsampler.filter (*_cloud_filtered);
+    _downsampler.filter (*_cloud_p);
     _cloud_f->clear();
 
+    // Remove noise
+    _sor.setInputCloud(_cloud_p);
+    _sor.filter(*_cloud_filtered);
+    _cloud_p->clear();
 
-    SegmentedWall::ArrayPtr walls(new std::vector<SegmentedWall>);
+    SegmentedPlane::ArrayPtr walls(new std::vector<SegmentedPlane>);
 
     _seg.setDistanceThreshold (distance_threshold);
 
@@ -118,8 +136,8 @@ SegmentedWall::ArrayPtr WallExtractor::extract(const common::SharedPointCloud &c
     // While halt_condition% of the original cloud is still there
     while (_cloud_filtered->points.size () > halt_condition * nr_points)
     {
-        ModelCoefficientsPtr coefficients(new ModelCoefficients);
-        PointIndicesPtr inliers(new PointIndices);
+        ModelCoefficients::Ptr coefficients(new ModelCoefficients);
+        PointIndices::Ptr inliers(new PointIndices);
 
         // Segment the largest planar component from the remaining cloud
         _seg.setInputCloud (_cloud_filtered);
@@ -131,7 +149,9 @@ SegmentedWall::ArrayPtr WallExtractor::extract(const common::SharedPointCloud &c
         }
 
         //add wall to result set
-        walls->push_back(SegmentedWall(coefficients,inliers));
+        Eigen::Vector4d centroid;
+        pcl::compute3DCentroid<pcl::PointXYZ>(*_cloud_p, centroid);
+        walls->push_back(SegmentedPlane(coefficients,centroid));
 
         // Extract the inliers
         _extract.setInputCloud (_cloud_filtered);
@@ -139,16 +159,14 @@ SegmentedWall::ArrayPtr WallExtractor::extract(const common::SharedPointCloud &c
         _extract.setNegative (false);
         _extract.filter (*_cloud_p);
 
-#if ENABLE_VISUALIZATION==1
+#if ENABLE_VISUALIZATION_PLANES==1
         std::stringstream ss;
         ss << "Plane: " << i;
         if (i < _colors.size())
-            WallExtractor::AddPCL(_viewer, _cloud_p, ss.str(), _colors[i].r, _colors[i].g, _colors[i].b);
+            pcl::visualization::AddPointCloud(_viewer, _cloud_p, ss.str(), _colors[i].r, _colors[i].g, _colors[i].b);
         else
-            WallExtractor::AddPCL(_viewer, _cloud_p, ss.str());
+            pcl::visualization::AddPointCloud(_viewer, _cloud_p, ss.str());
 
-        Eigen::Vector4d centroid;
-        //compute3DCentroid<PointXYZ>(*_cloud_p, centroid);
         _viewer.addPlane(*coefficients,centroid(0),centroid(1),centroid(2),ss.str());
 
         PointCloud::Ptr cloud_projected = PointCloud::Ptr(new PointCloud);
@@ -162,7 +180,7 @@ SegmentedWall::ArrayPtr WallExtractor::extract(const common::SharedPointCloud &c
         _hull.reconstruct(*cloud_hull);
         _hull.setDimension(2);
 
-        _viewer.addPolygon<PointXYZ>(cloud_hull, _colors[i].r, _colors[i].g, _colors[i].b, ss.str());
+        _viewer.addPolygon<pcl::PointXYZ>(cloud_hull, _colors[i].r, _colors[i].g, _colors[i].b, ss.str());
 #endif
 
         // Create the filtering object
@@ -172,10 +190,10 @@ SegmentedWall::ArrayPtr WallExtractor::extract(const common::SharedPointCloud &c
         i++;
     }
 
-#if ENABLE_VISUALIZATION==1
+#if ENABLE_VISUALIZATION_PLANES==1
     std::cerr << "Walls fitted: " << i << std::endl;
 
-    WallExtractor::AddPCL(_viewer,_cloud_filtered,"unclassified",255,255,255);
+    pcl::visualization::AddPointCloud(_viewer,_cloud_filtered,"unclassified",255,255,255);
 
     //viewer.resetCamera();
     _viewer.spinOnce(100);
