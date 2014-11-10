@@ -2,10 +2,11 @@
 #include "wall_detector/wall_extractor.h"
 #include <pcl_ros/point_cloud.h>
 #include <pcl/point_types.h>
-#include <wall_detector/Walls.h>
+#include <object_detector/Walls.h>
 #include <sensor_msgs/CameraInfo.h>
 #include <Eigen/Core>
 #include <common/parameter.h>
+#include <pre_filter/pre_filter.h>
 
 //------------------------------------------------------------------------------
 // Constants
@@ -16,7 +17,10 @@ const double PUBLISH_FREQUENCY = 10.0;
 // Member variables
 
 WallExtractor _wall_extractor;
-common::SharedPointCloud _pcloud;
+PreFilter _pre_filter;
+
+common::SharedPointCloudRGB _pcloud;
+common::PointCloudRGB::Ptr _filtered;
 Eigen::Matrix4f _camera_matrix;
 
 Parameter<double> _distance_threshold("/vision/walls/dist_thres", 0.01);
@@ -34,7 +38,7 @@ Parameter<double> _outlier_thresh("/vision/walls/outliers/thresh", 0.5);
 //------------------------------------------------------------------------------
 // Callbacks
 
-void callback_point_cloud(const common::SharedPointCloud& pcloud)
+void callback_point_cloud(const common::SharedPointCloudRGB& pcloud)
 {
     _pcloud = pcloud;
 }
@@ -52,9 +56,9 @@ void callback_camera_matrix(const sensor_msgs::CameraInfoConstPtr& m)
 //------------------------------------------------------------------------------
 // Test cases
 
-common::PointCloud::Ptr testcase() {
+common::PointCloudRGB::Ptr testcase() {
 
-    common::PointCloud::Ptr cloud(new common::PointCloud);
+    common::PointCloudRGB::Ptr cloud(new common::PointCloudRGB);
 
     // Fill in the cloud data
     cloud->width  = 150+300+150+100;
@@ -115,26 +119,31 @@ int main(int argc, char **argv)
 
     Eigen::Vector3d leaf_size(_leaf_size(),_leaf_size(),_leaf_size());
 
-    ros::Subscriber sub_pcloud = n.subscribe<pcl::PointCloud<pcl::PointXYZ> >
+    ros::Subscriber sub_pcloud = n.subscribe<pcl::PointCloud<pcl::PointXYZRGB> >
             ("/camera/depth/points", 3, callback_point_cloud);
 //    ros::Subscriber sub_camera_m = n.subscribe<sensor_msgs::CameraInfo>
 //            ("/camera/ir/camera_info", 1, callback_camera_matrix);
 
-    ros::Publisher pub_walls = n.advertise<wall_detector::Walls>("/vision/walls",10);
+    ros::Publisher pub_walls = n.advertise<object_detector::Walls>("/vision/walls",10);
 
     ros::Rate rate(PUBLISH_FREQUENCY);
+
+    _filtered = common::PointCloudRGB::Ptr(new common::PointCloudRGB);
 
     while(n.ok())
     {
         leaf_size.setConstant(_leaf_size());
-        _wall_extractor.set_frustum_culling(_frustum_near(), _frustum_far(), _frustum_horz_fov(), _frustum_vert_fov());
         _wall_extractor.set_outlier_removal(_outlier_meanK(), _outlier_thresh());
+
+        _filtered->clear();
+        _pre_filter.set_frustum_culling(_frustum_near(), _frustum_far(), _frustum_horz_fov(), _frustum_vert_fov());
+        _pre_filter.set_outlier_removal(_outlier_meanK(), _outlier_thresh());
+        _pre_filter.set_voxel_leaf_size(_leaf_size(),_leaf_size(),_leaf_size());
+        _pre_filter.filter(_pcloud,_filtered);
 
         ros::Time time = ros::Time::now();
 
-        common::vision::SegmentedPlane::ArrayPtr walls = _wall_extractor.extract(_pcloud, _distance_threshold(), _halt_condition(), leaf_size);
-
-        ROS_INFO("Time spent on extracting planes: %lf\n", (ros::Time::now().toSec() - time.toSec()));
+        common::vision::SegmentedPlane::ArrayPtr walls = _wall_extractor.extract(_filtered, _distance_threshold(), _halt_condition(), leaf_size);
 
         pub_walls.publish(common::vision::segmentedPlaneToMsg(walls));
 

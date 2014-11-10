@@ -54,33 +54,26 @@ public:
     void set_camera_matrix(const Eigen::Matrix4f& m);
 
     common::vision::SegmentedPlane::ArrayPtr extract(
-            const common::SharedPointCloud &cloud,
+            const common::SharedPointCloudRGB &cloud,
             double distance_threshold,
             double halt_condition,
             const Eigen::Vector3d& voxel_leaf_size);
 
 protected:
-    pcl::FrustumCulling<pcl::PointXYZ> _frustum;
-    pcl::StatisticalOutlierRemoval<pcl::PointXYZ> _sor;
+    pcl::FrustumCulling<pcl::PointXYZRGB> _frustum;
+    pcl::StatisticalOutlierRemoval<pcl::PointXYZRGB> _sor;
 
-    pcl::SACSegmentation<pcl::PointXYZ> _seg;
-    common::PointCloud::Ptr _cloud_filtered, _cloud_p, _cloud_f;
-    pcl::ExtractIndices<pcl::PointXYZ> _extract;
-    pcl::VoxelGrid<pcl::PointXYZ> _downsampler;
-
-    class Color {
-    public:
-        Color(int cr, int cg, int cb)
-            :r(cr),g(cg),b(cb) {}
-        int r, g, b;
-    };
+    pcl::SACSegmentation<pcl::PointXYZRGB> _seg;
+    common::PointCloudRGB::Ptr _cloud_filtered, _cloud_p, _cloud_f;
+    pcl::ExtractIndices<pcl::PointXYZRGB> _extract;
+    pcl::VoxelGrid<pcl::PointXYZRGB> _downsampler;
 
 private:
 #if ENABLE_VISUALIZATION_PLANES==1
     pcl::visualization::PCLVisualizer _viewer;
-    pcl::ProjectInliers<pcl::PointXYZ> _proj;
-    pcl::ConvexHull<pcl::PointXYZ> _hull;
-    std::vector<Color> _colors;
+    pcl::ProjectInliers<pcl::PointXYZRGB> _proj;
+    pcl::ConvexHull<pcl::PointXYZRGB> _hull;
+    std::vector<common::Color> _colors;
 #endif
 };
 

@@ -14,7 +14,7 @@ find_package(catkin REQUIRED COMPONENTS
   message_generation
   common
 )
-#find_package(PCL 1.7 REQUIRED)
+find_package(PCL 1.7 REQUIRED)
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -119,8 +119,8 @@ add_executable(wall_colorizer src/wall_colorizer.cpp)
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
 # add_dependencies(object_detector_node object_detector_generate_messages_cpp)
-#add_dependencies(wall_colorizer wall_extractor)
-#add_dependencies(object_detector wall_extractor roi_extractor)
+add_dependencies(wall_colorizer wall_extractor)
+add_dependencies(object_detector wall_extractor roi_extractor)
 
 ## Specify libraries to link a library or executable target against
 
@@ -128,8 +128,8 @@ target_link_libraries(roi_extractor ${PCL_LIBRARIES})
 
 target_link_libraries(object_detector
   ${catkin_LIBRARIES}
-  ${PCL_LIBRARIES} libvtkCommon.so libvtkFiltering.so libvtkRendering.so libvtkGraphics.so
-  /usr/lib/libpcl_filters.so
+  ${PCL_LIBRARIES} libpcl_filters.so libvtkCommon.so libvtkFiltering.so libvtkRendering.so libvtkGraphics.so
+
   roi_extractor
   wall_extractor
 )
