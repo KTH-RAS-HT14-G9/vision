@@ -36,7 +36,8 @@ public:
 
     common::vision::ROIArrayPtr extract(const common::vision::SegmentedPlane::ArrayPtr& walls,
                                         const common::SharedPointCloudRGB& pcloud,
-                                        double wall_thickness);
+                                        double wall_thickness,
+                                        double max_obj_height);
 
     void set_cluster_constraints(double cluster_tolerance,
                                  int min_cluster_size,
@@ -62,7 +63,7 @@ protected:
 private:
 #if ENABLE_VISUALIZATION_ROIS==1
     pcl::visualization::PCLVisualizer _viewer;
-    std::vector<common::Color> _colors;
+    common::Colors _colors;
 #endif
 };
 

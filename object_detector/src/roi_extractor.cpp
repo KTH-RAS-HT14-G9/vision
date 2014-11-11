@@ -7,11 +7,6 @@ ROIExtractor::ROIExtractor()
     _viewer.addCoordinateSystem (1.0);
     _viewer.initCameraParameters ();
 
-    _colors.push_back(common::Color(255,0,0));
-    _colors.push_back(common::Color(0,255,0));
-    _colors.push_back(common::Color(0,0,255));
-    _colors.push_back(common::Color(255,255,0));
-    _colors.push_back(common::Color(0,255,255));
 #endif
 }
 
@@ -61,7 +56,8 @@ void ROIExtractor::filter_points_on_plane(const common::SharedPointCloudRGB& clo
 common::vision::ROIArrayPtr ROIExtractor::extract(
         const common::vision::SegmentedPlane::ArrayPtr& walls,
         const common::SharedPointCloudRGB& pcloud,
-        double wall_thickness = 0.1)
+        double wall_thickness = 0.01,
+        double max_obj_height = 0.05)
 {
     using namespace Eigen;
 
@@ -89,6 +85,7 @@ common::vision::ROIArrayPtr ROIExtractor::extract(
 #if ENABLE_VISUALIZATION_ROIS==1
     _viewer.removeAllPointClouds();
     _viewer.removeAllShapes();
+    _colors.reset();
 
 
 //    pcl::visualization::AddPointCloud(_viewer,cloud_t,"Clipped",255,0,0);
@@ -118,33 +115,77 @@ common::vision::ROIArrayPtr ROIExtractor::extract(
     _cluster_ex.setInputCloud(cloud_t);
     _cluster_ex.extract(clusters);
 
-    for (int i = 0; i < clusters.size(); ++i)
+    //find ground plane
+    Eigen::Vector3f down(0,-1,0);
+    float max_metric = 0.0;
+    int ground_plane = 0;
+    for(int i = 0; i < walls->size(); ++i)
     {
-        common::PointCloudRGB::Ptr cluster_cloud(new common::PointCloudRGB);
+        const pcl::ModelCoefficientsConstPtr& plane = walls->at(i).get_coefficients();
+        Eigen::Vector3f normal(plane->values[0],plane->values[1],plane->values[2]);
+        normal.normalize();
 
-        pcl::PointIndices& cluster = clusters[i];
-        pcl::copyPointCloud(*cloud_t, cluster.indices, *cluster_cloud);
+        float metric = down.dot(normal);
+        if (metric > max_metric) {
+            max_metric = metric;
+            ground_plane = i;
+        }
 
-#if ENABLE_VISUALIZATION_ROIS==1
-        std::stringstream ss;
-        ss << "Cluster" << i;
-        pcl::visualization::AddPointCloud(_viewer,cluster_cloud,ss.str(),_colors[i].r,_colors[i].g,_colors[i].b);
-#endif
-
-        common::vision::ROI roi(cluster_cloud);
-        rois->push_back(roi);
+        //std::cerr << "Wall " << i << ", Metric: " << metric << std::endl;
     }
 
-    //find ground plane
-//    for(int i = 0; i < walls->size(); ++i)
-//    {
-//        const pcl::ModelCoefficientsConstPtr& plane = walls->at(i).get_coefficients();
-//        Eigen::Vector3f normal(plane->values[0],plane->values[1],plane->values[2]);
-//        normal.normalize();
-//        std::cerr << "Wall " << i << ": " << normal << std::endl;
-//    }
+#if ENABLE_VISUALIZATION_ROIS==1
+
+    std::stringstream ss;
+    ss << "Ground";
+    const pcl::ModelCoefficientsConstPtr& plane = walls->at(ground_plane).get_coefficients();
+
+    pcl::ModelCoefficients top = *plane;
+    top.values[3] += max_obj_height;
+    pcl::ModelCoefficients bottom = *plane;
+    bottom.values[3] -= max_obj_height;
+    _viewer.addPlane(top, 0,0,0, ss.str());
+    ss << "_bottom";
+    _viewer.addPlane(bottom, 0,0,0, ss.str());
+
+    int i = 0;
+#endif
 
     //remove cluster that are not inside max object height
+    for(std::vector<pcl::PointIndices>::iterator itCluster = clusters.begin(); itCluster != clusters.end(); ++itCluster)
+    {
+        bool enclosed = true;
+
+        std::vector<int>& indices = itCluster->indices;
+        for(std::vector<int>::iterator itPoints = indices.begin(); itPoints != indices.end(); ++itPoints)
+        {
+            int idx = *itPoints;
+            const pcl::PointXYZRGB& p = cloud_t->at(idx);
+            if(!point_is_on_plane(p,walls->at(ground_plane).get_coefficients(),max_obj_height*2.0)) {
+                enclosed = false;
+                break;
+            }
+        }
+
+        //add to result set
+        if (enclosed)
+        {
+            common::PointCloudRGB::Ptr cluster_cloud(new common::PointCloudRGB);
+
+            pcl::copyPointCloud(*cloud_t, indices, *cluster_cloud);
+
+    #if ENABLE_VISUALIZATION_ROIS==1
+            std::stringstream ss;
+            ss << "Cluster" << i++;
+            common::Color c = _colors.next();
+            pcl::visualization::AddPointCloud(_viewer,cluster_cloud,ss.str(),c.r,c.g,c.b);
+    #endif
+
+            common::vision::ROI roi(cluster_cloud);
+            rois->push_back(roi);
+        }
+    }
+
 
 #if ENABLE_VISUALIZATION_ROIS==1
     _viewer.spinOnce(100);

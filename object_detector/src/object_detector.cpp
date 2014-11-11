@@ -34,10 +34,11 @@ Parameter<int>    _outlier_meanK("/vision/walls/outliers/meanK", 50);
 Parameter<double> _outlier_thresh("/vision/walls/outliers/thresh", 0.5);
 
 // Parameters of object detector
-Parameter<double> _wall_thickness("/vision/wall_filter/dist_thresh", 0.008);
-Parameter<int> _cluster_min("/vision/wall_filter/cluster_min", 100);
-Parameter<int> _cluster_max("/vision/wall_filter/cluster_max", 50000);
-Parameter<double> _cluster_tolerance("/vision/wall_filter/cluster_tolerance", 0.01);
+Parameter<double> _wall_thickness("/vision/rois/dist_thresh", 0.008);
+Parameter<int> _cluster_min("/vision/rois/cluster_min", 100);
+Parameter<int> _cluster_max("/vision/rois/cluster_max", 5000);
+Parameter<double> _cluster_tolerance("/vision/rois/cluster_tolerance", 0.01);
+Parameter<double> _max_object_height("/vision/rois/max_object_height", 0.07);
 
 
 void callback_rgb_image(const sensor_msgs::ImageConstPtr& rgb)
@@ -95,7 +96,7 @@ int main(int argc, char **argv)
             double t_walls = timer.elapsed();
             timer.start();
 
-            common::vision::ROIArrayPtr rois = _roi_extractor.extract(walls,_filtered,_wall_thickness());
+            common::vision::ROIArrayPtr rois = _roi_extractor.extract(walls,_filtered,_wall_thickness(),_max_object_height());
             double t_rois = timer.elapsed();
 
             double t_sum = t_prefilter+t_walls+t_rois;

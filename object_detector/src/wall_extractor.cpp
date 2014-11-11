@@ -33,12 +33,6 @@ WallExtractor::WallExtractor() {
     //_viewer.setBackgroundColor(255,255,255,0);
 
     _proj.setModelType(pcl::SACMODEL_PLANE);
-
-    _colors.push_back(common::Color(255,0,0));
-    _colors.push_back(common::Color(0,255,0));
-    _colors.push_back(common::Color(0,0,255));
-    _colors.push_back(common::Color(255,255,0));
-    _colors.push_back(common::Color(0,255,255));
 #endif
 }
 
@@ -109,6 +103,7 @@ common::vision::SegmentedPlane::ArrayPtr WallExtractor::extract(const common::Sh
 #if ENABLE_VISUALIZATION_PLANES==1
     _viewer.removeAllPointClouds();
     _viewer.removeAllShapes();
+    _colors.reset();
 #endif
 
     pcl::copyPointCloud(*cloud,*_cloud_filtered);
@@ -164,10 +159,8 @@ common::vision::SegmentedPlane::ArrayPtr WallExtractor::extract(const common::Sh
 #if ENABLE_VISUALIZATION_PLANES==1
         std::stringstream ss;
         ss << "Plane: " << i;
-        if (i < _colors.size())
-            pcl::visualization::AddPointCloud(_viewer, _cloud_p, ss.str(), _colors[i].r, _colors[i].g, _colors[i].b);
-        else
-            pcl::visualization::AddPointCloud(_viewer, _cloud_p, ss.str());
+        common::Color c = _colors.next();
+        pcl::visualization::AddPointCloud(_viewer, _cloud_p, ss.str(), c.r, c.g, c.b);
 
         _viewer.addPlane(*coefficients,centroid(0),centroid(1),centroid(2),ss.str());
 
@@ -182,7 +175,7 @@ common::vision::SegmentedPlane::ArrayPtr WallExtractor::extract(const common::Sh
         _hull.reconstruct(*cloud_hull);
         _hull.setDimension(2);
 
-        _viewer.addPolygon<pcl::PointXYZRGB>(cloud_hull, _colors[i].r, _colors[i].g, _colors[i].b, ss.str());
+        _viewer.addPolygon<pcl::PointXYZRGB>(cloud_hull, c.r, c.g, c.b, ss.str());
 #endif
 
         // Create the filtering object

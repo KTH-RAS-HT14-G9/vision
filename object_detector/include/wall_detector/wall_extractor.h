@@ -72,7 +72,7 @@ private:
     pcl::visualization::PCLVisualizer _viewer;
     pcl::ProjectInliers<pcl::PointXYZRGB> _proj;
     pcl::ConvexHull<pcl::PointXYZRGB> _hull;
-    std::vector<common::Color> _colors;
+    common::Colors _colors;
 #endif
 };
 
