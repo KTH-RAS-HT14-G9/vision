@@ -18,10 +18,10 @@ ROIExtractor::ROIExtractor()
 ROIExtractor::~ROIExtractor()
 {}
 
-void ROIExtractor::set_rgb_image(const cv_bridge::CvImageConstPtr& img)
-{
-    _rgb = img;
-}
+//void ROIExtractor::set_rgb_image(const cv_bridge::CvImageConstPtr& img)
+//{
+//    _rgb = img;
+//}
 
 void ROIExtractor::set_cluster_constraints(double cluster_tolerance,
                                            int min_cluster_size,
@@ -82,8 +82,6 @@ common::vision::ROIArrayPtr ROIExtractor::extract(
         filter_points_on_plane(pcloud,filtered,plane,wall_thickness);
     }
 
-    std::cerr << "Points remaining: " << filtered.indices.size() << std::endl;
-
     common::PointCloudRGB::Ptr cloud_t(new common::PointCloudRGB);
     pcl::copyPointCloud(*pcloud,filtered.indices,*cloud_t);
 
@@ -136,6 +134,17 @@ common::vision::ROIArrayPtr ROIExtractor::extract(
         common::vision::ROI roi(cluster_cloud);
         rois->push_back(roi);
     }
+
+    //find ground plane
+//    for(int i = 0; i < walls->size(); ++i)
+//    {
+//        const pcl::ModelCoefficientsConstPtr& plane = walls->at(i).get_coefficients();
+//        Eigen::Vector3f normal(plane->values[0],plane->values[1],plane->values[2]);
+//        normal.normalize();
+//        std::cerr << "Wall " << i << ": " << normal << std::endl;
+//    }
+
+    //remove cluster that are not inside max object height
 
 #if ENABLE_VISUALIZATION_ROIS==1
     _viewer.spinOnce(100);

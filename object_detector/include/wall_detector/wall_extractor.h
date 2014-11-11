@@ -1,8 +1,7 @@
 #ifndef WALL_EXTRACTOR_H
 #define WALL_EXTRACTOR_H
 
-#define ENABLE_VISUALIZATION_PLANES 0
-
+#include <common/debug.h>
 #include <common/segmented_plane.h>
 #include <common/types.h>
 

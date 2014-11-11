@@ -69,13 +69,14 @@ int main(int argc, char **argv)
     Eigen::Vector3d leaf_size;
 
     _filtered = common::PointCloudRGB::Ptr(new common::PointCloudRGB);
+    common::Timer timer;
 
     while(n.ok())
     {
 
         if (_pcloud != NULL && !_pcloud->empty())
         {
-            ros::Time time = ros::Time::now();
+            timer.start();
 
             _filtered->clear();
             _pre_filter.set_frustum_culling(_frustum_near(), _frustum_far(), _frustum_horz_fov(), _frustum_vert_fov());
@@ -83,13 +84,25 @@ int main(int argc, char **argv)
             _pre_filter.set_voxel_leaf_size(_leaf_size(),_leaf_size(),_leaf_size());
             _pre_filter.filter(_pcloud,_filtered);
 
+            double t_prefilter = timer.elapsed();
+            timer.start();
+
             _roi_extractor.set_cluster_constraints(_cluster_tolerance(), _cluster_min(), _cluster_max());
 
             leaf_size.setConstant(_leaf_size());
             common::vision::SegmentedPlane::ArrayPtr walls = _wall_extractor.extract(_filtered,_distance_threshold(),_halt_condition(),leaf_size);
-            common::vision::ROIArrayPtr rois = _roi_extractor.extract(walls,_filtered,_wall_thickness());
 
-            ROS_INFO("Time spent on vision: %lf\n", (ros::Time::now().toSec() - time.toSec()));
+            double t_walls = timer.elapsed();
+            timer.start();
+
+            common::vision::ROIArrayPtr rois = _roi_extractor.extract(walls,_filtered,_wall_thickness());
+            double t_rois = timer.elapsed();
+
+            double t_sum = t_prefilter+t_walls+t_rois;
+
+#if ENABLE_TIME_PROFILING == 1
+            ROS_INFO("Time spent on vision. Sum: %.3lf | Prefilter: %.3lf | Walls: %.3lf | Rois: %.3lf\n", t_sum, t_prefilter, t_walls, t_rois);
+#endif
         }
 
         ros::spinOnce();

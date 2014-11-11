@@ -1,20 +1,15 @@
 #ifndef ROI_EXTRACTOR_H
 #define ROI_EXTRACTOR_H
 
-#define ENABLE_VISUALIZATION_ROIS 0
-
-#include <ros/ros.h>
-#include <eigen3/Eigen/Core>
-#include <cv_bridge/cv_bridge.h>
-#include <opencv2/imgproc/imgproc.hpp>
-#include <object_detector/Walls.h> //TODO: replace with ros independent class
-#include <pcl/point_types.h>
-#include <pcl/pcl_base.h>
+#include <common/debug.h>
 #include <common/types.h>
 #include <common/roi.h>
 #include <common/segmented_plane.h>
 
-//#include <pcl/filters/plane_clipper3D.h>
+#include <eigen3/Eigen/Core>
+
+#include <pcl/point_types.h>
+#include <pcl/pcl_base.h>
 #include <pcl/segmentation/extract_clusters.h>
 
 #if ENABLE_VISUALIZATION_ROIS==1
@@ -37,7 +32,7 @@ public:
     ROIExtractor();
     ~ROIExtractor();
 
-    void set_rgb_image(const cv_bridge::CvImageConstPtr& img);
+    //void set_rgb_image(const cv_bridge::CvImageConstPtr& img);
 
     common::vision::ROIArrayPtr extract(const common::vision::SegmentedPlane::ArrayPtr& walls,
                                         const common::SharedPointCloudRGB& pcloud,
@@ -57,7 +52,7 @@ protected:
                            const pcl::ModelCoefficientsConstPtr& plane,
                            double max_distance);
 
-    cv_bridge::CvImageConstPtr _rgb;
+//    cv_bridge::CvImageConstPtr _rgb;
 
     pcl::EuclideanClusterExtraction<pcl::PointXYZRGB> _cluster_ex;
     //pcl::PlaneClipper3D<pcl::PointXYZRGB> _plane_clipper;
