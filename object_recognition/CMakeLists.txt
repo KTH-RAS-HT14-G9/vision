@@ -118,6 +118,7 @@ add_executable(object_recognition src/object_recognition.cpp)
 target_link_libraries(object_recognition
   ${catkin_LIBRARIES}
   shape_fitting
+  libvtkCommon.so libvtkFiltering.so libvtkRendering.so libvtkGraphics.so
 )
 
 #############
