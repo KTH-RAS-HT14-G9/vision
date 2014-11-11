@@ -101,6 +101,7 @@ int main(int argc, char **argv)
             ROS_INFO("Time spent on vision. Sum: %.3lf | Prefilter: %.3lf | Walls: %.3lf | Rois: %.3lf\n", t_sum, t_prefilter, t_walls, t_rois);
 #endif
 
+            roimsg->pointClouds.clear();
             common::vision::roiToMsg(rois,roimsg);
             pub_rois.publish(roimsg);
 
