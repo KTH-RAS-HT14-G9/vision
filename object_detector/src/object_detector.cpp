@@ -1,11 +1,13 @@
 #include <roi_extractor/roi_extractor.h>
 #include <sensor_msgs/Image.h>
-#include <std_msgs/Float64MultiArray.h>
+#include <std_msgs/Float64.h>
 #include <wall_detector/wall_extractor.h>
 #include <common/parameter.h>
 #include <common/types.h>
 #include <pcl_ros/point_cloud.h>
 #include <pre_filter/pre_filter.h>
+#include <pcl_msgs/Vertices.h>
+#include <object_detector/ROI.h>
 
 const double PUBLISH_FREQUENCY = 10.0;
 
@@ -41,17 +43,6 @@ Parameter<double> _cluster_tolerance("/vision/rois/cluster_tolerance", 0.01);
 Parameter<double> _max_object_height("/vision/rois/max_object_height", 0.07);
 
 
-void callback_rgb_image(const sensor_msgs::ImageConstPtr& rgb)
-{
-//    cv_bridge::CvImageConstPtr cvrgb = cv_bridge::toCvShare(rgb,"");
-//    _detector.set_rgb_image(cvrgb);
-}
-
-void callback_walls(const object_detector::WallsConstPtr& walls)
-{
-
-}
-
 void callback_point_cloud(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr& pcloud)
 {
     _pcloud = pcloud;
@@ -62,15 +53,17 @@ int main(int argc, char **argv)
     ros::init(argc, argv, "object_detector");
 
     ros::NodeHandle n;
-    ros::Subscriber sub_rgb = n.subscribe<sensor_msgs::Image>("/camera/image/rgb",3,callback_rgb_image);
     ros::Subscriber sub_pcloud = n.subscribe<pcl::PointCloud<pcl::PointXYZRGB> >("/camera/depth_registered/points", 3, callback_point_cloud);
-    ros::Publisher pub_detection = n.advertise<std_msgs::Float64MultiArray>("/vision/detector/obstacle/position",1);
+    ros::Publisher pub_detection = n.advertise<std_msgs::Float64>("/vision/detector/obstacle/distance",1);
+    ros::Publisher pub_rois = n.advertise<object_detector::ROI>("/vision/obstacles/rois",1);
 
     ros::Rate loop_rate(PUBLISH_FREQUENCY);
     Eigen::Vector3d leaf_size;
 
     _filtered = common::PointCloudRGB::Ptr(new common::PointCloudRGB);
     common::Timer timer;
+
+    object_detector::ROIPtr roimsg = object_detector::ROIPtr(new object_detector::ROI);
 
     while(n.ok())
     {
@@ -99,11 +92,18 @@ int main(int argc, char **argv)
             common::vision::ROIArrayPtr rois = _roi_extractor.extract(walls,_filtered,_wall_thickness(),_max_object_height());
             double t_rois = timer.elapsed();
 
+            //TODO: ------------------------------------------------------------
+            //find closest object and publish distance to closest point
+
             double t_sum = t_prefilter+t_walls+t_rois;
 
 #if ENABLE_TIME_PROFILING == 1
             ROS_INFO("Time spent on vision. Sum: %.3lf | Prefilter: %.3lf | Walls: %.3lf | Rois: %.3lf\n", t_sum, t_prefilter, t_walls, t_rois);
 #endif
+
+            common::vision::roiToMsg(rois,roimsg);
+            pub_rois.publish(roimsg);
+
         }
 
         ros::spinOnce();

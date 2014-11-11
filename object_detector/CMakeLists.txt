@@ -9,6 +9,7 @@ project(object_detector)
 find_package(catkin REQUIRED COMPONENTS
   roscpp
   std_msgs
+  sensor_msgs
   pcl_ros
   cv_bridge
   message_generation
@@ -54,6 +55,7 @@ add_message_files(
   FILES
   Wall.msg
   Walls.msg
+  ROI.msg
 )
 
 ## Generate services in the 'srv' folder
@@ -74,6 +76,7 @@ add_message_files(
 generate_messages(
   DEPENDENCIES
   std_msgs
+  sensor_msgs
 )
 
 ###################################
@@ -119,8 +122,8 @@ add_executable(wall_colorizer src/wall_colorizer.cpp)
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
 # add_dependencies(object_detector_node object_detector_generate_messages_cpp)
-add_dependencies(wall_colorizer wall_extractor)
-add_dependencies(object_detector wall_extractor roi_extractor)
+add_dependencies(wall_colorizer wall_extractor object_detector_generate_messages_cpp)
+add_dependencies(object_detector wall_extractor roi_extractor object_detector_generate_messages_cpp)
 
 ## Specify libraries to link a library or executable target against
 
@@ -128,8 +131,7 @@ target_link_libraries(roi_extractor ${PCL_LIBRARIES})
 
 target_link_libraries(object_detector
   ${catkin_LIBRARIES}
-  ${PCL_LIBRARIES} libpcl_filters.so libvtkCommon.so libvtkFiltering.so libvtkRendering.so libvtkGraphics.so
-
+  ${PCL_LIBRARIES} libvtkCommon.so libvtkFiltering.so libvtkRendering.so libvtkGraphics.so
   roi_extractor
   wall_extractor
 )
