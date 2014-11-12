@@ -24,7 +24,7 @@ Eigen::Matrix4f _camera_matrix;
 
 // Parameters of wall extractor
 Parameter<double> _distance_threshold("/vision/walls/dist_thresh", 0.01);
-Parameter<double> _leaf_size("/vision/walls/leaf_size", 0.005);
+Parameter<double> _leaf_size("/vision/walls/leaf_size", 0.003);
 Parameter<double> _halt_condition("/vision/walls/halt_condition", 0.2);
 
 Parameter<double> _frustum_near("/vision/frustum/near", 0.3);
@@ -39,7 +39,7 @@ Parameter<double> _outlier_thresh("/vision/walls/outliers/thresh", 0.5);
 Parameter<double> _wall_thickness("/vision/rois/dist_thresh", 0.008);
 Parameter<int> _cluster_min("/vision/rois/cluster_min", 100);
 Parameter<int> _cluster_max("/vision/rois/cluster_max", 5000);
-Parameter<double> _cluster_tolerance("/vision/rois/cluster_tolerance", 0.01);
+Parameter<double> _cluster_tolerance("/vision/rois/cluster_tolerance", 0.015);
 Parameter<double> _max_object_height("/vision/rois/max_object_height", 0.07);
 
 
