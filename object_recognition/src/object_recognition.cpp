@@ -51,7 +51,9 @@ int main(int argc, char **argv)
     _classifier.push_back(new PlaneFitting("Cube",2,"/vision/recognition/cube/"));
 
     //Manual set of parameters
-    ros::param::set("/vision/recognition/sphere/dist_thresh",0.002);
+    //ros::param::set("/vision/recognition/sphere/dist_thresh",0.002);
+    ros::param::set("/vision/recognition/cylinder/dist_thresh",0.01);
+    ros::param::set("/vision/recognition/cylinder/normal_dist_weight",0.01);
 
     ros::Rate rate(10);
     common::Timer timer;
@@ -97,7 +99,7 @@ int main(int argc, char **argv)
             }
 
             if (max_probability > 0.7) {
-                std::cerr << "It's a " << _classifier[ci_max]->name() << std::endl;
+                std::cerr << "Object " << i << "is a " << _classifier[ci_max]->name() << std::endl;
 
 #if ENABLE_VISUALIZATION_RECOGNITION
                 //-----------------------------------------------------------------

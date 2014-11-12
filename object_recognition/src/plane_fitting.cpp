@@ -153,7 +153,7 @@ void PlaneFitting::visualize(pcl::visualization::PCLVisualizer &viewer, const pc
         }
 
         std::stringstream ss;
-        ss << "Plane_" << i/4;
+        ss << "Cube_" << i/4;
         viewer.addPlane(plane,0,0,0,ss.str());
     }
 }
