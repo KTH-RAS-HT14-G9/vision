@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(object_recognition)
 
+#set(CMAKE_BUILD_TYPE Debug)
+
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
@@ -101,7 +103,9 @@ include_directories(
 )
 
 ## Declare a cpp library
-add_library(shape_fitting src/shape_fitting.cpp)
+add_library(shape_classifier_base src/shape_classifier_base.cpp)
+add_library(model_fitting src/model_fitting.cpp)
+add_library(plane_fitting src/plane_fitting.cpp)
 
 ## Declare a cpp executable
 # add_executable(object_recognition_node src/object_recognition_node.cpp)
@@ -112,12 +116,12 @@ add_executable(object_recognition src/object_recognition.cpp)
 # add_dependencies(object_recognition_node object_recognition_generate_messages_cpp)
 
 ## Specify libraries to link a library or executable target against
-# target_link_libraries(object_recognition_node
-#   ${catkin_LIBRARIES}
-# )
+target_link_libraries(model_fitting ${catkin_LIBRARIES} shape_classifier_base)
+target_link_libraries(plane_fitting ${catkin_LIBRARIES} shape_classifier_base)
 target_link_libraries(object_recognition
   ${catkin_LIBRARIES}
-  shape_fitting
+  model_fitting
+  plane_fitting
   libvtkCommon.so libvtkFiltering.so libvtkRendering.so libvtkGraphics.so
 )
 
