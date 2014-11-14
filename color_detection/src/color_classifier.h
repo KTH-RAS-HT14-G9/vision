@@ -21,14 +21,13 @@ protected:
 ColorClassifier::ColorClassifier(double reference_hue)
     :_reference_hue(reference_hue)
 {
-    //_histogram.resize(512);
     _histogram.resize(NBINS);
 }
 
 double ColorClassifier::weight_color(double hue)
 {
 
-    return std::abs(hue-_reference_hue)/(NBINS/2);
+   // return std::abs(hue-_reference_hue)/(NBINS/2);
 
   // weight considering it's this hue
   // hypothesis the hue values wrapp up around 255, meaning 0 and 255 are the same hue
@@ -50,8 +49,8 @@ void ColorClassifier::build_histogram(double hue)
 {
     // _histogram[round(hue)]=_histogram[round(hue)] + weight_color(hue);
     // for each hue, spread numbers around its -2----2 neighbours
-    static const double gauss_mask[5]={0.1,0.2,0.4,0.2,0.1};
-
+    //static const double gauss_mask[5]={0.1,0.2,0.4,0.2,0.1};
+    static const double gauss_mask[5]={0,0,1,0,0};
     for (int i=-2;i<3;++i)
     {
         int idx = (round(hue)+i);
@@ -88,7 +87,6 @@ double ColorClassifier::classify(const std::vector<double> &hues)
     int neighbour=5;
     for ( int i=(-(neighbour-1)/2); i<(neighbour-(neighbour-1)/2);i++)
     {
-        //std::cout<< _histogram[_reference_hue+i]<< std::endl;
         if (_histogram[_reference_hue+i] > max) max=_histogram[_reference_hue+i];
     }
 
@@ -99,7 +97,7 @@ double ColorClassifier::classify(const std::vector<double> &hues)
     }
 
     probability=(double)max/sum;
-    std::cout<< _reference_hue << "\t" <<probability <<std::endl;
+    //std::cout<< _reference_hue << "\t" <<probability <<std::endl;
     return probability;
 }
 
