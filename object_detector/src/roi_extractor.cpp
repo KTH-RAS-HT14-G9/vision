@@ -134,8 +134,6 @@ common::vision::ROIArrayPtr ROIExtractor::extract(
         //std::cerr << "Wall " << i << ", Metric: " << metric << std::endl;
     }
 
-    std::cout << "Ground metric: " << max_metric << std::endl;
-
     //check if it's the true ground (happens only when we do not see the ground)
     if (max_metric < 0.8) {
         ground_plane = -1;
