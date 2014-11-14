@@ -12,14 +12,15 @@
 
 static const char * ColorNames[] = {
     "red_sphere",
+    "red_cube",
     "plurple",
     "blue_cube",
+    "blue_triangle"
     "gree_cube",
     "green_cylinder",
     "orange_star",
-    "red_cube",
     "yellow_cube",
-    "blue_triangle"
+    "yellow_sphere",
 };
 // record and orange star again
 /*
@@ -32,32 +33,23 @@ double _reference_hues[9] = {
     13.732883,
     251.929105, // using red_compensation() value is 361.26235 = 1.26235
     34.132421,
+    35,6129728,
     139.898806
-}; // WHY IS DIS RONG????
-
-double _reference_hues[9] = {
-    0,
-    211,
-    155,
-    85,
-    85,
-    21,
-    255,
-    42,
-    155,
-}; // try default values 0-360
+};
 */
-double _reference_hues[9] = {
-    0,
-    300,
-    240,
-    120,
-    120,
-    30,
-    360,
-    60,
-    240,
-}; // try default values 0-360
+
+double _reference_hues[10] = {
+    361.821682, // = 1.821682
+    360.794878, // = 0.794878
+    1,
+    1,
+    1,
+    1,
+    1,
+    1.26235,
+    33.67376,
+    35.6129728,
+};
 
 std::vector<ColorClassifier> _classifiers;
 
@@ -73,7 +65,7 @@ double red_compensation(double hue,int flag)
 {
     if (flag==1)
     {
-        if (hue < 30) return hue+360;
+        if (hue < 50) return hue+360;
         else return hue;
     }
     else return hue;
@@ -118,9 +110,9 @@ void RoisCallBack(const object_detector::ROIConstPtr& cloudrois)
         for(int j=0; j<numpoints; j++)
         {
             pcl::PointXYZHSV& pointhsv = _cloudhsv->at(j);
-            ROS_INFO("Color of point %d \t:\t %f",j,pointhsv.h); // this value also wraps around 360 so the wrong value will be red! the rest of the colors have slight fluctuations but nothing that seems relevant
-            std::cout<<red_compensation(pointhsv.h,1)<<std::endl;
-            sum=sum+red_compensation(pointhsv.h,1); // set second argument to 0 when getting reference values for colors different from red
+            ROS_INFO("Color of point %d \t:\t %f",j,red_compensation(pointhsv.h,0));
+            // this value also wraps around 360 so the wrong value will be red! the rest of the colors have slight fluctuations but nothing that seems relevant
+            sum=sum+red_compensation(pointhsv.h,0); // set second argument to 0 when getting reference values for colors different from red
             _hues[i][j]=pointhsv.h;
         }
         double average=sum/numpoints;
