@@ -25,8 +25,20 @@ ColorClassifier::ColorClassifier(double reference_hue)
 }
 
 double ColorClassifier::weight_color(double hue)
-{
+{   // this doesn't really help to solve the red and orange problem
+    int window_size=100;
+    if(std::abs(_reference_hue- hue)<(window_size/2)) return (1-(std::abs(_reference_hue-hue)/(window_size/2)));
+    else if (std::abs(_reference_hue-(hue+NBINS))<(window_size/2))
+    {
+        return (1-(std::abs(_reference_hue-(hue+NBINS))/(window_size/2)));
+    }
+    else if (std::abs(_reference_hue-(hue-NBINS))<(window_size/2))
+    {
+        return (1-(std::abs(_reference_hue-(hue-NBINS))/(window_size/2)));
+    }
+    else return 0;
 
+   /*
    // return std::abs(hue-_reference_hue)/(NBINS/2);
 
   // weight considering it's this hue
@@ -43,6 +55,8 @@ double ColorClassifier::weight_color(double hue)
       double h_temp=hue+NBINS-1;
        return (1-(std::abs(_reference_hue-h_temp)/(NBINS/2)));
     }
+    */
+
 }
 
 void ColorClassifier::build_histogram(double hue)
@@ -64,7 +78,7 @@ void ColorClassifier::build_histogram(double hue)
             idx = idx%NBINS;
         }
         _histogram[idx]=_histogram[idx]+gauss_mask[i+2]* weight_color(hue);
-        //std::cout << _reference_hue << "\t" << hue << "\t" << weight_color(hue)*(NBINS/2)<<"\n";
+        //std::cout << _reference_hue << "\t" << hue << "\t" << weight_color(hue)<<"\n";
     }
 }
 
@@ -84,7 +98,7 @@ double ColorClassifier::classify(const std::vector<double> &hues)
 
     // find the peak vaule around the reference hue
     int max=0;
-    int neighbour=5;
+    int neighbour=15;
     for ( int i=(-(neighbour-1)/2); i<(neighbour-(neighbour-1)/2);i++)
     {
         if (_histogram[_reference_hue+i] > max) max=_histogram[_reference_hue+i];
@@ -97,7 +111,9 @@ double ColorClassifier::classify(const std::vector<double> &hues)
     }
 
     probability=(double)max/sum;
-    //std::cout<< _reference_hue << "\t" <<probability <<std::endl;
+    // since we only give weights to the area close to the reference hue, meaning sometimes the histogram only have 0;
+    if (sum==0) probability=0;
+    //std::cout<< _reference_hue << "\t" <<sum <<std::endl;
     return probability;
 }
 

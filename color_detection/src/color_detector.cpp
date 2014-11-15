@@ -11,45 +11,25 @@
 #include <object_detector/ROI.h>
 
 static const char * ColorNames[] = {
-    "red_sphere",
-    "red_cube",
+    "red",
+    "yellow",
+    "blue",
+    "green",
+    "green_light",
+    "orange",
     "plurple",
-    "blue_cube",
-    "blue_triangle"
-    "gree_cube",
-    "green_cylinder",
-    "orange_star",
-    "yellow_cube",
-    "yellow_sphere",
 };
-// record and orange star again
-/*
-double _reference_hues[9] = {
-    29.484966, // using red_compensation() value is 374.708768 = 14.708768
-    211.036363,
-    181.724423,
-    77.4834897,
-    64.076282,
-    13.732883,
-    251.929105, // using red_compensation() value is 361.26235 = 1.26235
-    34.132421,
-    35,6129728,
-    139.898806
-};
-*/
 
-double _reference_hues[10] = {
-    361.821682, // = 1.821682
-    360.794878, // = 0.794878
-    1,
-    1,
-    1,
-    1,
-    1,
-    1.26235,
-    33.67376,
-    35.6129728,
+double _reference_hues[7] = {
+    1.30828, // good
+    34.643364, // good
+    215.820892, // works for now. needs testing
+    110,
+    65,
+    20,
+    280,
 };
+
 
 std::vector<ColorClassifier> _classifiers;
 
@@ -110,7 +90,7 @@ void RoisCallBack(const object_detector::ROIConstPtr& cloudrois)
         for(int j=0; j<numpoints; j++)
         {
             pcl::PointXYZHSV& pointhsv = _cloudhsv->at(j);
-            ROS_INFO("Color of point %d \t:\t %f",j,red_compensation(pointhsv.h,0));
+            ROS_INFO("Color of point %d \t:\t %f \t %f",j,red_compensation(pointhsv.h,0),pointhsv.v);
             // this value also wraps around 360 so the wrong value will be red! the rest of the colors have slight fluctuations but nothing that seems relevant
             sum=sum+red_compensation(pointhsv.h,0); // set second argument to 0 when getting reference values for colors different from red
             _hues[i][j]=pointhsv.h;
@@ -118,11 +98,11 @@ void RoisCallBack(const object_detector::ROIConstPtr& cloudrois)
         double average=sum/numpoints;
         double ref=average; // Check this value to get color specific reference value
 
-        ROS_ERROR("Reference color: %lf\n",ref);
+        //ROS_ERROR("Reference color: %lf\n",ref);
 
         // Check this function! values seem to be 0-360.
 
-           }
+        }
    _flag=1;
 
 }
@@ -142,8 +122,6 @@ int main(int argc, char **argv)
             ("/vision/obstacles/rois",1,RoisCallBack);
 
     ros::Rate loop_rate(10);
-
-
 
     // initialize reference hues classifers
     int num = sizeof(_reference_hues)/sizeof(double);
@@ -192,7 +170,8 @@ int main(int argc, char **argv)
 
             double max_probability = 0;
             int best_i = 0;
-
+            num=7;
+            double green_probability =0;
             for (int i = 0; i < num; ++i)
             {
                 for (int j=0;j<_hues.size();j++)
@@ -205,12 +184,12 @@ int main(int argc, char **argv)
                         max_probability = probability;
                         best_i = i;
                     }
-
-                    //std::cout << "Color: " << ColorNames[i] << " has probability: " << probability << std::endl;
+                    if (i ==3) green_probability =probability;
+                    std::cout << "Color: " << ColorNames[i] << " has probability: " << probability << std::endl;
                 }
             }
-
-            //std::cout << "It is " << ColorNames[best_i] << std::endl;
+            if (green_probability > 0.005) {std::cout << "It is green"  << std::endl;}
+            else std::cout << "It is " << ColorNames[best_i] << std::endl;
 
             //            }
 
