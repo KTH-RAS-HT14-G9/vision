@@ -21,7 +21,7 @@ static const char * ColorNames[] = {
 };
 
 double _reference_hues[7] = {
-    1.30828, // good
+    361.30828, // good
     34.643364, // good
     215.820892, // works for now. needs testing
     110,
@@ -90,9 +90,9 @@ void RoisCallBack(const object_detector::ROIConstPtr& cloudrois)
         for(int j=0; j<numpoints; j++)
         {
             pcl::PointXYZHSV& pointhsv = _cloudhsv->at(j);
-            ROS_INFO("Color of point %d \t:\t %f \t %f",j,red_compensation(pointhsv.h,0),pointhsv.v);
+            //ROS_INFO("Color of point %d \t:\t %f \t %f",j,red_compensation(pointhsv.h,1),pointhsv.v);
             // this value also wraps around 360 so the wrong value will be red! the rest of the colors have slight fluctuations but nothing that seems relevant
-            sum=sum+red_compensation(pointhsv.h,0); // set second argument to 0 when getting reference values for colors different from red
+            sum=sum+red_compensation(pointhsv.h,1); // set second argument to 0 when getting reference values for colors different from red
             _hues[i][j]=pointhsv.h;
         }
         double average=sum/numpoints;
@@ -137,41 +137,11 @@ int main(int argc, char **argv)
         if (_flag!=0)
         {
 
-            //            std::cout << "reference hue is " << ref<<std::endl;
-            //            //std::cout <<  _cloudrgb->size() << "\n";
-            //            /*
-            //            // For reference hue values //////////////
-
-            //            double sum=0;
-            //            for(int i=0;i<_cloudhsv->size();++i)
-            //            {
-            //                pcl::PointXYZHSV& pointhsv = _cloudhsv->at(i);
-            //                sum=sum+pointhsv.h;
-            //            }
-
-            //            double average=sum/_cloudhsv->size();
-            //            int ref=round(average); // Check this value to get color specific reference value
-            //            std::cout << "reference hue is " << ref;
-            //            */
-            //            //////////////////////////////////////////
-
-            //            std::cout << "apple" <<std::endl;
-            //            int max= _cloudhsv->size();
-            //            std::vector<double> hues;
-            ///*
-            //            for (int i=0 ;i < max; ++i)
-            //            {
-            //                std::cout <<  _cloudrgb->size() << "\n";
-            //                pcl::PointXYZHSV& pointhsv = _cloudhsv->at(i);
-            //                int hue=round(pointhsv.h);
-            //                hues[i]=hue;
-            //                //std::cout << i << "\t" << hue << "\t" << "total" << "\t" << hues[hue] << "\n";
-            //            }
-
             double max_probability = 0;
             int best_i = 0;
             num=7;
             double green_probability =0;
+            int green_index=0;
             for (int i = 0; i < num; ++i)
             {
                 for (int j=0;j<_hues.size();j++)
@@ -184,11 +154,20 @@ int main(int argc, char **argv)
                         max_probability = probability;
                         best_i = i;
                     }
-                    if (i ==3) green_probability =probability;
+                    if (i == 3) {
+                        green_probability = probability;
+                        green_index=i;
+                    }
+                    if (i == 4 && probability > green_probability){
+                        green_probability = probability;
+                        green_index=i;
+                    }
+
                     std::cout << "Color: " << ColorNames[i] << " has probability: " << probability << std::endl;
                 }
             }
-            if (green_probability > 0.005) {std::cout << "It is green"  << std::endl;}
+            if (green_probability > 0.4) {std::cout << "It is " << ColorNames[green_index] << std::endl;}
+
             else std::cout << "It is " << ColorNames[best_i] << std::endl;
 
             //            }
