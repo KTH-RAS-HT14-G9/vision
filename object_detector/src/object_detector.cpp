@@ -34,6 +34,7 @@ Parameter<int> _down_sample_target_n("/vision/filter/down_sampling/fast_target_n
 // Parameters of wall extractor
 Parameter<double> _distance_threshold("/vision/walls/dist_thresh", 0.01);
 Parameter<double> _halt_condition("/vision/walls/halt_condition", 0.2);
+Parameter<double> _samples_max_dist("/vision/walls/samples_max_dist", 0.2);
 
 Parameter<int>    _outlier_meanK("/vision/walls/outliers/meanK", 50);
 Parameter<double> _outlier_thresh("/vision/walls/outliers/thresh", 0.5);
@@ -59,6 +60,7 @@ int main(int argc, char **argv)
     ros::Subscriber sub_pcloud = n.subscribe<pcl::PointCloud<pcl::PointXYZRGB> >("/camera/depth_registered/points", 3, callback_point_cloud);
     ros::Publisher pub_detection = n.advertise<std_msgs::Float64>("/vision/detector/obstacle/distance",1);
     ros::Publisher pub_rois = n.advertise<object_detector::ROI>("/vision/obstacles/rois",1);
+    ros::Publisher pub_planes = n.advertise<object_detector::Planes>("/vision/obstacles/planes",1);
 
     ros::Rate loop_rate(PUBLISH_FREQUENCY);
     Eigen::Vector3d leaf_size;
@@ -67,6 +69,7 @@ int main(int argc, char **argv)
     common::Timer timer;
 
     object_detector::ROIPtr roimsg = object_detector::ROIPtr(new object_detector::ROI);
+    object_detector::PlanesPtr planesmsg = object_detector::PlanesPtr(new object_detector::Planes);
 
     while(n.ok())
     {
@@ -88,7 +91,7 @@ int main(int argc, char **argv)
             _roi_extractor.set_cluster_constraints(_cluster_tolerance(), _cluster_min(), _cluster_max());
 
             leaf_size.setConstant(_leaf_size());
-            common::vision::SegmentedPlane::ArrayPtr walls = _wall_extractor.extract(_filtered,_distance_threshold(),_halt_condition(),leaf_size);
+            common::vision::SegmentedPlane::ArrayPtr walls = _wall_extractor.extract(_filtered,_distance_threshold(),_halt_condition(),leaf_size,_samples_max_dist());
 
             double t_walls = timer.elapsed();
             timer.start();
@@ -108,6 +111,10 @@ int main(int argc, char **argv)
             roimsg->pointClouds.clear();
             common::vision::roiToMsg(rois,roimsg);
             pub_rois.publish(roimsg);
+
+            planesmsg->planes.clear();
+            common::vision::planesToMsg(walls,planesmsg);
+            pub_planes.publish(planesmsg);
 
         }
 

@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 2.8.3)
 project(object_detector)
 
 #set(PCL_DIR "/usr/share/pcl-1.7/")
+#set(CMAKE_BUILD_TYPE Debug)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
@@ -53,8 +54,8 @@ find_package(PCL 1.7 REQUIRED)
 ## Generate messages in the 'msg' folder
 add_message_files(
   FILES
-  Wall.msg
-  Walls.msg
+  Plane.msg
+  Planes.msg
   ROI.msg
 )
 

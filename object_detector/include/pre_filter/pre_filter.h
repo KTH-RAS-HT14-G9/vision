@@ -66,7 +66,7 @@ public:
         timer.start();
 
         if (_fast_downsample) {
-            fast_downsampling(cloud_in, _indexbufA, cloud_out);
+            PreFilter::fast_downsampling(cloud_in, _indexbufA, cloud_out, _downsample_to_npoints);
         }
         else {
             //use voxel grid
@@ -89,11 +89,12 @@ public:
 #endif
     }
 
-protected:
+    static void fast_downsampling(const common::SharedPointCloudRGB& cloud_in,
+                                  pcl::PointIndices::Ptr& indices,
+                                  common::PointCloudRGB::Ptr& cloud_out,
+                                  int target_n_points);
 
-    void fast_downsampling(const common::SharedPointCloudRGB& cloud_in,
-                           pcl::PointIndices::Ptr& indices,
-                           common::PointCloudRGB::Ptr& cloud_out);
+protected:
 
     bool _fast_downsample;
     int _downsample_to_npoints;
@@ -129,12 +130,13 @@ PreFilter::PreFilter()
 
 void PreFilter::fast_downsampling(const common::SharedPointCloudRGB &cloud_in,
                                   pcl::PointIndices::Ptr &indices,
-                                  common::PointCloudRGB::Ptr &cloud_out)
+                                  common::PointCloudRGB::Ptr &cloud_out,
+                                  int target_n_points)
 {
-    if (indices->indices.size() > _downsample_to_npoints)
+    if (indices->indices.size() > target_n_points)
     {
         std::random_shuffle(indices->indices.begin(), indices->indices.end());
-        indices->indices.resize(_downsample_to_npoints);
+        indices->indices.resize(target_n_points);
     }
 
     pcl::copyPointCloud(*cloud_in,indices->indices,*cloud_out);
