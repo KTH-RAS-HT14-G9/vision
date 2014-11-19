@@ -56,12 +56,56 @@ void callback_planes(const object_detector::PlanesConstPtr& msg)
 
 bool condition_cube(const std::vector<pcl::ModelCoefficients>& planes, const std::vector<Eigen::Vector4f>& centroids)
 {
-    //centroid of the vertical plane has to be closer to the camera,
-    //than the centroid of the horizontal plane
+    //--------------------------------------------------------------------------
+    //1.: There has to be a plane that is parallel to the ground plane
+    const pcl::ModelCoefficientsConstPtr& ground_c = _ground_plane->get_coefficients();
+    Eigen::Vector3f n_ground(ground_c->values[0],ground_c->values[1],ground_c->values[2]);
 
-    //also: centroid of the horizontal plane should be significantly higher then ground plane
+    int parallel_plane = 0;
+    double max_metric = 0;
+    for(int i = 0; i < planes.size(); ++i)
+    {
+        Eigen::Vector3f n_plane(planes[i].values[0],planes[i].values[1],planes[i].values[2]);
 
-    //_ground_plane->get_coefficients()
+        double dot = n_ground.dot(n_plane);
+
+        if (dot > max_metric) {
+            max_metric = dot;
+            parallel_plane = i;
+        }
+    }
+
+    //there is no parallel plane
+    if (max_metric < 0.8)
+        return false;
+
+    //--------------------------------------------------------------------------
+    //2.: Distance between horizontal plane and parallel plane's centroid has to
+    // be equal to the height of the cube (5cm)
+
+    const Eigen::Vector4f& centroid = centroids[parallel_plane];
+    Eigen::Vector3f parallel_centroid(centroid(0),centroid(1),centroid(2));
+
+    if (_ground_plane->distance(parallel_centroid) < 0.04)
+        return false;
+
+    //--------------------------------------------------------------------------
+    //3.: Centroid of the parallel plane has to have a greater distance
+    // to the camera, than all the other centroids
+    double parallel_dist = parallel_centroid.squaredNorm();
+
+    for (int i = 0; i < centroids.size(); ++i)
+    {
+        if (i == parallel_plane)
+            continue;
+
+        const Eigen::Vector4f& c = centroids[i];
+        Eigen::Vector3f plane_centroid(c(0),c(1),c(2));
+
+        //there is a plane behind the center of the parallel plane
+        if (plane_centroid.squaredNorm() > parallel_dist)
+            return false;
+    }
 
     return true;
 }
@@ -144,7 +188,7 @@ int main(int argc, char **argv)
                 //Draw model
                 _classifier[ci_max]->visualize(_viewer,*_best_coeffs);
 
-                _viewer.spinOnce(100);
+                _viewer.spinOnce(1,true);
 #endif
             }
             else {

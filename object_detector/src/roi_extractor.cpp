@@ -175,7 +175,7 @@ common::vision::ROIArrayPtr ROIExtractor::extract(
 
 
 #if ENABLE_VISUALIZATION_ROIS==1
-    _viewer.spinOnce(10);
+    _viewer.spinOnce(1,true);
 #endif
 
     return rois;
