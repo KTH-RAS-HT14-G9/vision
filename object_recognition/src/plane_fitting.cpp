@@ -1,10 +1,15 @@
 #include <shape_fitting/plane_fitting.h>
+#include <pcl/common/centroid.h>
 
-PlaneFitting::PlaneFitting(const std::string &name, int min_planes, const std::string &parameter_prefix)
+PlaneFitting::PlaneFitting(const std::string &name,
+                           int min_planes,
+                           const std::string &parameter_prefix,
+                           bool (*condition)(const std::vector<pcl::ModelCoefficients>&, const std::vector<Eigen::Vector4f>&))
     :ShapeClassifierBase(name)
     ,_distance_threshold(parameter_prefix+"dist_thresh", 0.005)
     ,_halt_condition(parameter_prefix+"halt_condition", 0.05)
     ,_min_planes(min_planes)
+    ,_condition(condition)
 {
     // Optional
     _seg.setOptimizeCoefficients (true);
@@ -15,6 +20,7 @@ PlaneFitting::PlaneFitting(const std::string &name, int min_planes, const std::s
     _indices = pcl::PointIndices::Ptr(new pcl::PointIndices);
     _inliers = pcl::PointIndices::Ptr(new pcl::PointIndices);
 }
+
 
 void PlaneFitting::set_parameters()
 {
@@ -67,6 +73,7 @@ double PlaneFitting::classify(const common::SharedPointCloudRGB &cloud, pcl::Mod
     int N = cloud->points.size();
 
     _planes.clear();
+    _centroids.clear();
     _indices->indices.clear();
     _inliers->indices.reserve(N);
 
@@ -83,6 +90,7 @@ double PlaneFitting::classify(const common::SharedPointCloudRGB &cloud, pcl::Mod
     while (remaining_n > _halt_condition() * N)
     {
         pcl::ModelCoefficients coeff;
+        Eigen::Vector4f centroid;
 
         _inliers->indices.clear();
 
@@ -101,6 +109,8 @@ double PlaneFitting::classify(const common::SharedPointCloudRGB &cloud, pcl::Mod
             _all_inliers[_inliers->indices[i]] = true;
 
         _planes.push_back(coeff);
+        pcl::compute3DCentroid(*cloud,*_inliers,centroid);
+        _centroids.push_back(centroid);
 
         //rebuild indices
         remaining_n = rebuild_indices_for_inlier_flag(_indices,_all_inliers,false);
@@ -111,7 +121,10 @@ double PlaneFitting::classify(const common::SharedPointCloudRGB &cloud, pcl::Mod
 
     if (_planes.size() > 0 && _planes.size() >= _min_planes) {
 
-        build_cube_model(_planes, coefficients);
+        if (_condition(_planes, _centroids) == false)
+            return 0;
+
+        build_multiple_plane_model(_planes, coefficients);
 
         double nInliers = N - _indices->indices.size();
         double nPoints = N;
@@ -125,7 +138,7 @@ double PlaneFitting::classify(const common::SharedPointCloudRGB &cloud, pcl::Mod
     return probability;
 }
 
-void PlaneFitting::build_cube_model(std::vector<pcl::ModelCoefficients>& planes, pcl::ModelCoefficients::Ptr& coefficients)
+void PlaneFitting::build_multiple_plane_model(std::vector<pcl::ModelCoefficients>& planes, pcl::ModelCoefficients::Ptr& coefficients)
 {
     if (planes.empty()) return;
 
@@ -153,7 +166,7 @@ void PlaneFitting::visualize(pcl::visualization::PCLVisualizer &viewer, const pc
         }
 
         std::stringstream ss;
-        ss << "Plane_" << i/4;
+        ss << "Cube_" << i/4;
         viewer.addPlane(plane,0,0,0,ss.str());
     }
 }
