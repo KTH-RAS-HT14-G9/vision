@@ -1,18 +1,13 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(object_recognition)
-
-#set(CMAKE_BUILD_TYPE Debug)
+project(vision_msgs)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
-  common
-  pcl_ros
-  roscpp
   sensor_msgs
   std_msgs
-  vision_msgs
+  message_generation
 )
 
 ## System dependencies are found with CMake's conventions
@@ -49,11 +44,12 @@ find_package(catkin REQUIRED COMPONENTS
 ##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
 
 ## Generate messages in the 'msg' folder
-# add_message_files(
-#   FILES
-#   Message1.msg
-#   Message2.msg
-# )
+add_message_files(
+  FILES
+  Plane.msg
+  Planes.msg
+  ROI.msg
+)
 
 ## Generate services in the 'srv' folder
 # add_service_files(
@@ -70,10 +66,11 @@ find_package(catkin REQUIRED COMPONENTS
 # )
 
 ## Generate added messages and services with any dependencies listed here
-# generate_messages(
-#   DEPENDENCIES
-#   sensor_msgs#   std_msgs
-# )
+generate_messages(
+  DEPENDENCIES
+  std_msgs
+  sensor_msgs
+)
 
 ###################################
 ## catkin specific configuration ##
@@ -86,8 +83,8 @@ find_package(catkin REQUIRED COMPONENTS
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
 #  INCLUDE_DIRS include
-#  LIBRARIES object_recognition
-#  CATKIN_DEPENDS common pcl_ros roscpp sensor_msgs std_msgs
+#  LIBRARIES vision_msgs
+#  CATKIN_DEPENDS sensor_msgs std_msgs
 #  DEPENDS system_lib
 )
 
@@ -99,32 +96,25 @@ catkin_package(
 ## Your package locations should be listed before other locations
 # include_directories(include)
 include_directories(
-  include
   ${catkin_INCLUDE_DIRS}
 )
 
 ## Declare a cpp library
-add_library(shape_classifier_base src/shape_classifier_base.cpp)
-add_library(model_fitting src/model_fitting.cpp)
-add_library(plane_fitting src/plane_fitting.cpp)
+# add_library(vision_msgs
+#   src/${PROJECT_NAME}/vision_msgs.cpp
+# )
 
 ## Declare a cpp executable
-# add_executable(object_recognition_node src/object_recognition_node.cpp)
-add_executable(object_recognition src/object_recognition.cpp)
+# add_executable(vision_msgs_node src/vision_msgs_node.cpp)
 
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
-# add_dependencies(object_recognition_node object_recognition_generate_messages_cpp)
+# add_dependencies(vision_msgs_node vision_msgs_generate_messages_cpp)
 
 ## Specify libraries to link a library or executable target against
-target_link_libraries(model_fitting ${catkin_LIBRARIES} shape_classifier_base)
-target_link_libraries(plane_fitting ${catkin_LIBRARIES} shape_classifier_base)
-target_link_libraries(object_recognition
-  ${catkin_LIBRARIES}
-  model_fitting
-  plane_fitting
-  libvtkCommon.so libvtkFiltering.so libvtkRendering.so libvtkGraphics.so
-)
+# target_link_libraries(vision_msgs_node
+#   ${catkin_LIBRARIES}
+# )
 
 #############
 ## Install ##
@@ -141,7 +131,7 @@ target_link_libraries(object_recognition
 # )
 
 ## Mark executables and/or libraries for installation
-# install(TARGETS object_recognition object_recognition_node
+# install(TARGETS vision_msgs vision_msgs_node
 #   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
 #   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
 #   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
@@ -166,7 +156,7 @@ target_link_libraries(object_recognition
 #############
 
 ## Add gtest based cpp test target and link libraries
-# catkin_add_gtest(${PROJECT_NAME}-test test/test_object_recognition.cpp)
+# catkin_add_gtest(${PROJECT_NAME}-test test/test_vision_msgs.cpp)
 # if(TARGET ${PROJECT_NAME}-test)
 #   target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
 # endif()
