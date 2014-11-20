@@ -2,7 +2,6 @@
 #include "wall_detector/wall_extractor.h"
 #include <pcl_ros/point_cloud.h>
 #include <pcl/point_types.h>
-#include <object_detector/Walls.h>
 #include <sensor_msgs/CameraInfo.h>
 #include <Eigen/Core>
 #include <common/parameter.h>

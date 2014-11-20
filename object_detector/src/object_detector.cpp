@@ -7,7 +7,7 @@
 #include <pcl_ros/point_cloud.h>
 #include <pre_filter/pre_filter.h>
 #include <pcl_msgs/Vertices.h>
-#include <object_detector/ROI.h>
+#include <vision_msgs/ROI.h>
 
 const double PUBLISH_FREQUENCY = 10.0;
 
@@ -59,8 +59,8 @@ int main(int argc, char **argv)
     ros::NodeHandle n;
     ros::Subscriber sub_pcloud = n.subscribe<pcl::PointCloud<pcl::PointXYZRGB> >("/camera/depth_registered/points", 3, callback_point_cloud);
     ros::Publisher pub_detection = n.advertise<std_msgs::Float64>("/vision/detector/obstacle/distance",1);
-    ros::Publisher pub_rois = n.advertise<object_detector::ROI>("/vision/obstacles/rois",1);
-    ros::Publisher pub_planes = n.advertise<object_detector::Planes>("/vision/obstacles/planes",1);
+    ros::Publisher pub_rois = n.advertise<vision_msgs::ROI>("/vision/obstacles/rois",1);
+    ros::Publisher pub_planes = n.advertise<vision_msgs::Planes>("/vision/obstacles/planes",1);
 
     ros::Rate loop_rate(PUBLISH_FREQUENCY);
     Eigen::Vector3d leaf_size;
@@ -68,8 +68,8 @@ int main(int argc, char **argv)
     _filtered = common::PointCloudRGB::Ptr(new common::PointCloudRGB);
     common::Timer timer;
 
-    object_detector::ROIPtr roimsg = object_detector::ROIPtr(new object_detector::ROI);
-    object_detector::PlanesPtr planesmsg = object_detector::PlanesPtr(new object_detector::Planes);
+    vision_msgs::ROIPtr roimsg = vision_msgs::ROIPtr(new vision_msgs::ROI);
+    vision_msgs::PlanesPtr planesmsg = vision_msgs::PlanesPtr(new vision_msgs::Planes);
 
     while(n.ok())
     {

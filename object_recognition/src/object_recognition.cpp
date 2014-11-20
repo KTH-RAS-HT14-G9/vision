@@ -1,6 +1,6 @@
 #include <ros/ros.h>
-#include <object_detector/ROI.h>
-#include <object_detector/Planes.h>
+#include <vision_msgs/ROI.h>
+#include <vision_msgs/Planes.h>
 #include <shape_fitting/model_fitting.h>
 #include <shape_fitting/plane_fitting.h>
 #include <pcl_conversions/pcl_conversions.h>
@@ -24,7 +24,7 @@ pcl::visualization::PCLVisualizer _viewer("Recognition");
 common::Colors _colors;
 #endif
 
-void callback_rois(const object_detector::ROIConstPtr& rois)
+void callback_rois(const vision_msgs::ROIConstPtr& rois)
 {
     while(_clouds.size() < rois->pointClouds.size()) {
         _clouds.push_back(pcl::PointCloud<pcl::PointXYZRGB>::Ptr(new pcl::PointCloud<pcl::PointXYZRGB>));
@@ -37,7 +37,7 @@ void callback_rois(const object_detector::ROIConstPtr& rois)
 
 }
 
-void callback_planes(const object_detector::PlanesConstPtr& msg)
+void callback_planes(const vision_msgs::PlanesConstPtr& msg)
 {
     _ground_plane = NULL;
     _planes->clear();
@@ -118,8 +118,8 @@ int main(int argc, char **argv)
 
     ros::NodeHandle n;
 
-    ros::Subscriber sub_rois = n.subscribe<object_detector::ROI>("/vision/obstacles/rois",1,callback_rois);
-    ros::Subscriber sub_planes = n.subscribe<object_detector::Planes>("/vision/obstacles/planes",1,callback_planes);
+    ros::Subscriber sub_rois = n.subscribe<vision_msgs::ROI>("/vision/obstacles/rois",1,callback_rois);
+    ros::Subscriber sub_planes = n.subscribe<vision_msgs::Planes>("/vision/obstacles/planes",1,callback_planes);
 
 #if ENABLE_VISUALIZATION_RECOGNITION==1
     _viewer.addCoordinateSystem (1.0);
