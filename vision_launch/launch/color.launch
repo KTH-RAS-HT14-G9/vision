@@ -1,0 +1,7 @@
+<launch>
+
+  <!-- run rviz -->
+  <node pkg="color_detection" type="color_detector" name="color_detection" launch-prefix="gdb -ex run --args" />
+
+
+</launch>
