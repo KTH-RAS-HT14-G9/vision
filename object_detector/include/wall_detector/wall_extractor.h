@@ -15,6 +15,7 @@
 #include <pcl/segmentation/sac_segmentation.h>
 #include <pcl/filters/frustum_culling.h>
 #include <pcl/filters/statistical_outlier_removal.h>
+#include <pcl/search/kdtree.h>
 
 #include <Eigen/Core>
 
@@ -43,29 +44,22 @@ public:
 
     WallExtractor();
 
-    void set_frustum_culling(float near_plane_dist,
-                             float far_plane_dist,
-                             float horizontal_fov,
-                             float vertical_fov);
-
-    void set_outlier_removal(int meanK, double stddev_multhresh);
-
-    void set_camera_matrix(const Eigen::Matrix4f& m);
-
     common::vision::SegmentedPlane::ArrayPtr extract(
             const common::SharedPointCloudRGB &cloud,
             double distance_threshold,
             double halt_condition,
-            const Eigen::Vector3d& voxel_leaf_size);
+            const Eigen::Vector3d& voxel_leaf_size,
+            double samples_max_dist);
 
 protected:
-    pcl::FrustumCulling<pcl::PointXYZRGB> _frustum;
-    pcl::StatisticalOutlierRemoval<pcl::PointXYZRGB> _sor;
 
+    int find_ground_plane(common::vision::SegmentedPlane::ArrayPtr& walls);
+
+    //pcl::UniformSampling<pcl::PointXYZRGB> _downsampler;
     pcl::SACSegmentation<pcl::PointXYZRGB> _seg;
     common::PointCloudRGB::Ptr _cloud_filtered, _cloud_p, _cloud_f;
     pcl::ExtractIndices<pcl::PointXYZRGB> _extract;
-    pcl::VoxelGrid<pcl::PointXYZRGB> _downsampler;
+    pcl::search::Search<pcl::PointXYZRGB>::Ptr _kd_tree;
 
 private:
 #if ENABLE_VISUALIZATION_PLANES==1

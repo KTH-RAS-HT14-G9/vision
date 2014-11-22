@@ -63,6 +63,10 @@ common::vision::ROIArrayPtr ROIExtractor::extract(
 
     common::vision::ROIArrayPtr rois(new std::vector<common::vision::ROI>);
 
+    //If theres is no ground plane, return
+    if (walls->empty() || !walls->at(0).is_ground_plane())
+        return rois;
+
     pcl::PointIndices filtered;
     filtered.indices = _point_indices;
     filtered.indices.clear();
@@ -115,24 +119,7 @@ common::vision::ROIArrayPtr ROIExtractor::extract(
     _cluster_ex.setInputCloud(cloud_t);
     _cluster_ex.extract(clusters);
 
-    //find ground plane
-    Eigen::Vector3f down(0,-1,0);
-    float max_metric = 0.0;
     int ground_plane = 0;
-    for(int i = 0; i < walls->size(); ++i)
-    {
-        const pcl::ModelCoefficientsConstPtr& plane = walls->at(i).get_coefficients();
-        Eigen::Vector3f normal(plane->values[0],plane->values[1],plane->values[2]);
-        normal.normalize();
-
-        float metric = down.dot(normal);
-        if (metric > max_metric) {
-            max_metric = metric;
-            ground_plane = i;
-        }
-
-        //std::cerr << "Wall " << i << ", Metric: " << metric << std::endl;
-    }
 
 #if ENABLE_VISUALIZATION_ROIS==1
 
@@ -188,7 +175,7 @@ common::vision::ROIArrayPtr ROIExtractor::extract(
 
 
 #if ENABLE_VISUALIZATION_ROIS==1
-    _viewer.spinOnce(100);
+    _viewer.spinOnce(1,true);
 #endif
 
     return rois;

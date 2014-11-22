@@ -2,7 +2,6 @@
 #include "wall_detector/wall_extractor.h"
 #include <pcl_ros/point_cloud.h>
 #include <pcl/point_types.h>
-#include <object_detector/Walls.h>
 #include <sensor_msgs/CameraInfo.h>
 #include <Eigen/Core>
 #include <common/parameter.h>
@@ -23,14 +22,19 @@ common::SharedPointCloudRGB _pcloud;
 common::PointCloudRGB::Ptr _filtered;
 Eigen::Matrix4f _camera_matrix;
 
-Parameter<double> _distance_threshold("/vision/walls/dist_thresh", 0.01);
-Parameter<double> _leaf_size("/vision/walls/leaf_size", 0.005);
-Parameter<double> _halt_condition("/vision/walls/halt_condition", 0.2);
+// Parameters of pre filter
+Parameter<double> _frustum_near("/vision/filter/frustum/near", 0.3);
+Parameter<double> _frustum_far("/vision/filter/frustum/far", 1.7);
+Parameter<double> _frustum_horz_fov("/vision/filter/frustum/horz_fov", 60.0);
+Parameter<double> _frustum_vert_fov("/vision/filter/frustum/vert_fov", 50.0);
+Parameter<double> _leaf_size("/vision/filter/down_sampling/leaf_size", 0.003); //voxel downsampling
+Parameter<bool> _fast_down_sampling("/vision/filter/down_sampling/enable_fast", false); //fast downsampling
+Parameter<int> _down_sample_target_n("/vision/filter/down_sampling/fast_target_n", 5000); //fast downsampling
 
-Parameter<double> _frustum_near("/vision/frustum/near", 0.3);
-Parameter<double> _frustum_far("/vision/frustum/far", 1.7);
-Parameter<double> _frustum_horz_fov("/vision/frustum/horz_fov", 60.0);
-Parameter<double> _frustum_vert_fov("/vision/frustum/vert_fov", 50.0);
+// Parameters of wall extractor
+Parameter<double> _distance_threshold("/vision/walls/dist_thresh", 0.01);
+Parameter<double> _halt_condition("/vision/walls/halt_condition", 0.2);
+Parameter<double> _samples_max_dist("/vision/walls/samples_max_dist", 0.2);
 
 Parameter<int>    _outlier_meanK("/vision/walls/outliers/meanK", 50);
 Parameter<double> _outlier_thresh("/vision/walls/outliers/thresh", 0.5);
@@ -50,7 +54,7 @@ void callback_camera_matrix(const sensor_msgs::CameraInfoConstPtr& m)
                         m->R[0], m->R[1], m->R[2], m->R[3],
                         m->P[0], m->P[1], m->P[2], m->P[3];
 
-    _wall_extractor.set_camera_matrix(_camera_matrix);
+//    _wall_extractor.set_camera_matrix(_camera_matrix);
 }
 
 //------------------------------------------------------------------------------
@@ -124,8 +128,6 @@ int main(int argc, char **argv)
 //    ros::Subscriber sub_camera_m = n.subscribe<sensor_msgs::CameraInfo>
 //            ("/camera/ir/camera_info", 1, callback_camera_matrix);
 
-    ros::Publisher pub_walls = n.advertise<object_detector::Walls>("/vision/walls",10);
-
     ros::Rate rate(PUBLISH_FREQUENCY);
 
     _filtered = common::PointCloudRGB::Ptr(new common::PointCloudRGB);
@@ -135,7 +137,6 @@ int main(int argc, char **argv)
         if (_pcloud != NULL && !_pcloud->empty())
         {
             leaf_size.setConstant(_leaf_size());
-            _wall_extractor.set_outlier_removal(_outlier_meanK(), _outlier_thresh());
 
             _filtered->clear();
             _pre_filter.set_frustum_culling(_frustum_near(), _frustum_far(), _frustum_horz_fov(), _frustum_vert_fov());
@@ -144,9 +145,7 @@ int main(int argc, char **argv)
             _pre_filter.filter(_pcloud,_filtered);
 
 
-            common::vision::SegmentedPlane::ArrayPtr walls = _wall_extractor.extract(_filtered,_distance_threshold(),_halt_condition(),leaf_size);
-
-            pub_walls.publish(common::vision::segmentedPlaneToMsg(walls));
+            common::vision::SegmentedPlane::ArrayPtr walls = _wall_extractor.extract(_filtered,_distance_threshold(),_halt_condition(),leaf_size,_samples_max_dist());
         }
 
         ros::spinOnce();
