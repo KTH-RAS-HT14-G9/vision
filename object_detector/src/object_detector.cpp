@@ -6,6 +6,7 @@
 #include <common/types.h>
 #include <pcl_ros/point_cloud.h>
 #include <pre_filter/pre_filter.h>
+#include <pcl_transform/pcl_transform.h>
 #include <pcl_msgs/Vertices.h>
 #include <vision_msgs/ROI.h>
 
@@ -17,6 +18,7 @@ const double PUBLISH_FREQUENCY = 10.0;
 ROIExtractor _roi_extractor;
 WallExtractor _wall_extractor;
 PreFilter _pre_filter;
+PclTransform _pcl_transform;
 
 common::SharedPointCloudRGB _pcloud;
 common::PointCloudRGB::Ptr _filtered;
@@ -77,6 +79,10 @@ int main(int argc, char **argv)
         if (_pcloud != NULL && !_pcloud->empty())
         {
             timer.start();
+            //_pcl_transform.transform(_pcloud, );
+            double t_transform = timer.elapsed();
+
+            timer.start();
 
             _filtered->clear();
             _pre_filter.set_frustum_culling(_frustum_near(), _frustum_far(), _frustum_horz_fov(), _frustum_vert_fov());
@@ -94,6 +100,11 @@ int main(int argc, char **argv)
             common::vision::SegmentedPlane::ArrayPtr walls = _wall_extractor.extract(_filtered,_distance_threshold(),_halt_condition(),leaf_size,_samples_max_dist());
 
             double t_walls = timer.elapsed();
+
+            //calibrate
+            if (walls->size() > 0 && walls->at(0).is_ground_plane())
+                _pcl_transform.calibrate(walls->at(0));
+
             timer.start();
 
             common::vision::ROIArrayPtr rois = _roi_extractor.extract(walls,_filtered,_wall_thickness(),_max_object_height());
