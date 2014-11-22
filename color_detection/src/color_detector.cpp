@@ -8,7 +8,7 @@
 #include <vector>
 #include <algorithm>
 #include "color_classifier.h"
-#include <object_detector/ROI.h>
+#include <vision_msgs/ROI.h>
 
 static const char * ColorNames[] = {
     "red",
@@ -37,7 +37,9 @@ std::vector<ColorClassifier> _classifiers;
 pcl::PointCloud<pcl::PointXYZRGB>::Ptr _cloudrgb;
 std::vector< pcl::PointCloud<pcl::PointXYZHSV>::Ptr > _hsv_clouds;
 pcl::PointCloud<pcl::PointXYZHSV>::Ptr _cloudhsv;
+
 std::vector<std::vector<double> > _hues;
+std::vector<std::vector<double> > _hsl_ls;
 int _flag=0;
 int ref=0;
 
@@ -51,7 +53,7 @@ double red_compensation(double hue,int flag)
     else return hue;
 }
 
-void RoisCallBack(const object_detector::ROIConstPtr& cloudrois)
+void RoisCallBack(const vision_msgs::ROIConstPtr& cloudrois)
 {
 
     int numclouds=1;//cloudrois->pointClouds.size();
@@ -59,11 +61,16 @@ void RoisCallBack(const object_detector::ROIConstPtr& cloudrois)
 
     _hsv_clouds.reserve(numclouds);
     _hues.reserve(numclouds);
+    //for ls
+    _hsl_ls.reserve(numclouds);
     while(_hsv_clouds.size() < numclouds) {
         _hsv_clouds.push_back(pcl::PointCloud<pcl::PointXYZHSV>::Ptr(new pcl::PointCloud<pcl::PointXYZHSV>));
     }
     while(_hues.size() < numclouds) {
         _hues.push_back(std::vector<double>());
+    }
+    while(_hsl_ls.size()<numclouds) {
+        _hsl_ls.push_back(std::vector<double>());
     }
     ///////we get hsv hue (a row) from each pointcloud and put them into a matrix
     ///for each point cloud
@@ -87,10 +94,19 @@ void RoisCallBack(const object_detector::ROIConstPtr& cloudrois)
 
         double sum=0;
         _hues[i].resize(numpoints);
+        _hsl_ls[i].resize(numpoints);
         for(int j=0; j<numpoints; j++)
         {
             pcl::PointXYZHSV& pointhsv = _cloudhsv->at(j);
-            //ROS_INFO("Color of point %d \t:\t %f \t %f",j,red_compensation(pointhsv.h,1),pointhsv.v);
+            pcl::PointXYZRGB& pointrgb = _cloudrgb->at(j);
+            //get rgb values ////////////////////////////////////////////half done just to compare if the conversionfrom hsv to hsl is right ??????????
+            uint32_t rgb = *reinterpret_cast<int*>(&pointrgb.rgb);
+            uint8_t r = (rgb >> 16) & 0x0000ff;
+            uint8_t g = (rgb >> 8) & 0x0000ff;
+            uint8_t b = (rgb) & 0x0000ff;
+            // convert from hsv to hsl,
+            _hsl_ls[i][j]=0.5*pointhsv.v*(2-pointhsv.s);
+            ROS_INFO("Color of point %d : %f \t %f \t %f \t %f",j,red_compensation(pointhsv.h,1),pointhsv.s,pointhsv.v,_hsl_ls[i][j]);
             // this value also wraps around 360 so the wrong value will be red! the rest of the colors have slight fluctuations but nothing that seems relevant
             sum=sum+red_compensation(pointhsv.h,1); // set second argument to 0 when getting reference values for colors different from red
             _hues[i][j]=pointhsv.h;
@@ -98,7 +114,7 @@ void RoisCallBack(const object_detector::ROIConstPtr& cloudrois)
         double average=sum/numpoints;
         double ref=average; // Check this value to get color specific reference value
 
-        //ROS_ERROR("Reference color: %lf\n",ref);
+        ROS_ERROR("Reference color: %lf\n",ref);
 
         // Check this function! values seem to be 0-360.
 
@@ -118,7 +134,7 @@ int main(int argc, char **argv)
     _cloudhsv = pcl::PointCloud<pcl::PointXYZHSV>::Ptr(new pcl::PointCloud<pcl::PointXYZHSV>);
 
 
-    ros::Subscriber sub_rois=n.subscribe<object_detector::ROI>
+    ros::Subscriber sub_rois=n.subscribe<vision_msgs::ROI>
             ("/vision/obstacles/rois",1,RoisCallBack);
 
     ros::Rate loop_rate(10);
@@ -163,7 +179,7 @@ int main(int argc, char **argv)
                         green_index=i;
                     }
 
-                    std::cout << "Color: " << ColorNames[i] << " has probability: " << probability << std::endl;
+                    //std::cout << "Color: " << ColorNames[i] << " has probability: " << probability << std::endl;
                 }
             }
             if (green_probability > 0.4) {std::cout << "It is " << ColorNames[green_index] << std::endl;}
