@@ -124,14 +124,17 @@ double ColorClassifier::classify(const std::vector<double> &hues)
     if (sum==0) probability=0;
     //std::cout<< _reference_hue << "\t" <<sum <<std::endl;
 
-    //std::cout << _count_ref_hue << "\t" << _count_orange << "\t" << hues.size() << std::endl;
+    std::cout << _count_ref_hue << "\t" << _count_orange << "\t" << hues.size() << std::endl;
 
     probability=probability*_count_ref_hue/hues.size();
 
     /////////////
 
-    double prob=(double)_count_ref_hue/((double)_count_ref_hue+(double)_count_orange);
-    //std::cout << probability << "\t" << prob << std::endl;
+    double prob=0;
+    if(_count_orange>10) prob=(double)_count_ref_hue/((double)_count_ref_hue+(double)_count_orange);
+    else prob=prob=(double)_count_ref_hue/(double) hues.size();
+
+    std::cout << probability << "\t" << prob << std::endl;
 
     /////////////
 
