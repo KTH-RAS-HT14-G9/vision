@@ -44,11 +44,13 @@ public:
 
     WallExtractor();
 
+    void set_down_vector(const Eigen::Vector3f& down);
+
     common::vision::SegmentedPlane::ArrayPtr extract(
             const common::SharedPointCloudRGB &cloud,
             double distance_threshold,
             double halt_condition,
-            const Eigen::Vector3d& voxel_leaf_size,
+            int downsample_target_n,
             double samples_max_dist);
 
 protected:
@@ -61,6 +63,7 @@ protected:
     pcl::ExtractIndices<pcl::PointXYZRGB> _extract;
     pcl::search::Search<pcl::PointXYZRGB>::Ptr _kd_tree;
 
+    Eigen::Vector3f _down;
 private:
 #if ENABLE_VISUALIZATION_PLANES==1
     pcl::visualization::PCLVisualizer _viewer;

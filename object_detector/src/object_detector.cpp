@@ -32,13 +32,12 @@ Parameter<double> _frustum_far("/vision/filter/frustum/far", 1.7);
 Parameter<double> _frustum_horz_fov("/vision/filter/frustum/horz_fov", 60.0);
 Parameter<double> _frustum_vert_fov("/vision/filter/frustum/vert_fov", 50.0);
 Parameter<double> _leaf_size("/vision/filter/down_sampling/leaf_size", 0.003); //voxel downsampling
-Parameter<bool> _fast_down_sampling("/vision/filter/down_sampling/enable_fast", false); //fast downsampling
-Parameter<int> _down_sample_target_n("/vision/filter/down_sampling/fast_target_n", 5000); //fast downsampling
 
 // Parameters of wall extractor
 Parameter<double> _distance_threshold("/vision/walls/dist_thresh", 0.01);
 Parameter<double> _halt_condition("/vision/walls/halt_condition", 0.2);
 Parameter<double> _samples_max_dist("/vision/walls/samples_max_dist", 0.2);
+Parameter<int> _down_sample_target_n("/vision/walls/down_sampling/target_n",5000);
 
 Parameter<int>    _outlier_meanK("/vision/walls/outliers/meanK", 50);
 Parameter<double> _outlier_thresh("/vision/walls/outliers/thresh", 0.5);
@@ -97,7 +96,6 @@ int main(int argc, char **argv)
             _pre_filter.set_frustum_culling(_frustum_near(), _frustum_far(), _frustum_horz_fov(), _frustum_vert_fov());
             _pre_filter.set_outlier_removal(_outlier_meanK(), _outlier_thresh());
             _pre_filter.set_voxel_leaf_size(_leaf_size(),_leaf_size(),_leaf_size());
-            _pre_filter.enable_fast_downsampling(_fast_down_sampling(),_down_sample_target_n());
             _pre_filter.filter(_pcloud,_filtered);
 
             double t_prefilter = timer.elapsed();
@@ -123,13 +121,14 @@ int main(int argc, char **argv)
             _roi_extractor.set_cluster_constraints(_cluster_tolerance(), _cluster_min(), _cluster_max());
 
             leaf_size.setConstant(_leaf_size());
-            common::vision::SegmentedPlane::ArrayPtr walls = _wall_extractor.extract(_transformed,_distance_threshold(),_halt_condition(),leaf_size,_samples_max_dist());
+            common::vision::SegmentedPlane::ArrayPtr walls = _wall_extractor.extract(_transformed,_distance_threshold(),_halt_condition(),_down_sample_target_n(),_samples_max_dist());
 
             double t_walls = timer.elapsed();
 
             //calibrate
             if (_calibrated == false && walls->size() > 0 && walls->at(0).is_ground_plane()) {
                 _pcl_transform.calibrate(walls->at(0));
+                _wall_extractor.set_down_vector(Eigen::Vector3f(0,0,-1));
                 _calibrated = true;
             }
 

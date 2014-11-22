@@ -90,12 +90,10 @@ add_library(roi_extractor src/roi_extractor.cpp)
 ## Declare a cpp executable
 # add_executable(object_detector_node src/object_detector_node.cpp)
 add_executable(object_detector src/object_detector.cpp)
-add_executable(wall_colorizer src/wall_colorizer.cpp)
 
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
 # add_dependencies(object_detector_node object_detector_generate_messages_cpp)
-add_dependencies(wall_colorizer wall_extractor)
 add_dependencies(object_detector wall_extractor roi_extractor)
 
 ## Specify libraries to link a library or executable target against
@@ -106,11 +104,6 @@ target_link_libraries(object_detector
   ${catkin_LIBRARIES}
   ${PCL_LIBRARIES} libvtkCommon.so libvtkFiltering.so libvtkRendering.so libvtkGraphics.so
   roi_extractor
-  wall_extractor
-)
-target_link_libraries(wall_colorizer
-  ${catkin_LIBRARIES}
-  ${PCL_LIBRARIES} libvtkCommon.so libvtkFiltering.so libvtkRendering.so libvtkGraphics.so
   wall_extractor
 )
 

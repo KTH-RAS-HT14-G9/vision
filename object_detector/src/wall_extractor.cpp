@@ -2,7 +2,9 @@
 #include <pre_filter/pre_filter.h>
 #include <common/types.h>
 
-WallExtractor::WallExtractor() {
+WallExtractor::WallExtractor()
+    :_down(0,-1,0)
+{
 
     using namespace common;
 
@@ -29,6 +31,11 @@ WallExtractor::WallExtractor() {
 #endif
 }
 
+void WallExtractor::set_down_vector(const Eigen::Vector3f &down)
+{
+    _down = down;
+}
+
 /**
   * Adapted from http://pointclouds.org/documentation/tutorials/extract_indices.php
   *
@@ -50,7 +57,7 @@ WallExtractor::WallExtractor() {
 common::vision::SegmentedPlane::ArrayPtr WallExtractor::extract(const common::SharedPointCloudRGB &cloud,
                                         double distance_threshold = 0.01,
                                         double halt_condition = 0.1,
-                                        const Eigen::Vector3d& voxel_leaf_size = Eigen::Vector3d(0.1,0.1,0.1),
+                                        int downsample_target_n = 5000,
                                         double samples_max_dist = 0.2)
 {
     using pcl::ModelCoefficients;
@@ -77,7 +84,7 @@ common::vision::SegmentedPlane::ArrayPtr WallExtractor::extract(const common::Sh
     inliers->indices.resize(cloud->size());
     for(int i = 0; i < cloud->size(); ++i) inliers->indices[i] = i;
 
-    PreFilter::fast_downsampling(cloud,inliers,_cloud_filtered,5000);
+    PreFilter::fast_downsampling(cloud,inliers,_cloud_filtered,downsample_target_n);
     //pcl::copyPointCloud(*cloud,*_cloud_filtered);
 
     SegmentedPlane::ArrayPtr walls(new std::vector<SegmentedPlane>);
@@ -172,7 +179,6 @@ common::vision::SegmentedPlane::ArrayPtr WallExtractor::extract(const common::Sh
 int WallExtractor::find_ground_plane(common::vision::SegmentedPlane::ArrayPtr& walls)
 {
     //find ground plane
-    Eigen::Vector3f down(0,-1,0);
     float max_metric = 0.0;
     int ground_plane = 0;
     for(int i = 0; i < walls->size(); ++i)
@@ -181,7 +187,7 @@ int WallExtractor::find_ground_plane(common::vision::SegmentedPlane::ArrayPtr& w
         Eigen::Vector3f normal(plane->values[0],plane->values[1],plane->values[2]);
         normal.normalize();
 
-        float metric = down.dot(normal);
+        float metric = std::abs(_down.dot(normal));
         if (metric > max_metric) {
             max_metric = metric;
             ground_plane = i;
