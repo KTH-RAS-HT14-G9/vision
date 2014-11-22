@@ -5,8 +5,8 @@ ModelFitting::ModelFitting(const std::string &name, pcl::SacModel model, const s
     ,_model(model)
     ,_min_r(parameter_prefix+"min_radius", 0.03/2.0)
     ,_max_r(parameter_prefix+"max_radius", 0.07/2.0)
-    ,_kd_k(parameter_prefix+"kd_k", 25)
-    ,_dist_thresh(parameter_prefix+"dist_thresh", 0.02)
+    ,_kd_k(parameter_prefix+"kd_k", 5)
+    ,_dist_thresh(parameter_prefix+"dist_thresh", 0.002)
     ,_normal_weight(parameter_prefix+"normal_dist_weight", 0.1)
 {
     // Optional
@@ -17,6 +17,8 @@ ModelFitting::ModelFitting(const std::string &name, pcl::SacModel model, const s
 
     _normals = pcl::PointCloud<pcl::Normal>::Ptr(new pcl::PointCloud<pcl::Normal>);
     _kd_tree = pcl::search::KdTree<pcl::PointXYZRGB>::Ptr(new pcl::search::KdTree<pcl::PointXYZRGB>);
+
+    _normal_est.setSearchMethod(_kd_tree);
 }
 
 void ModelFitting::set_parameter()
@@ -37,7 +39,6 @@ double ModelFitting::classify(const common::SharedPointCloudRGB &cloud, pcl::Mod
     coefficients->values.clear();
 
     _normal_est.setInputCloud(cloud);
-    _normal_est.setSearchMethod(_kd_tree);
     _normal_est.compute(*_normals);
 
     _seg.setInputCloud(cloud);
