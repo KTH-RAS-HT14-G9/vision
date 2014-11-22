@@ -40,6 +40,12 @@ public:
         _voxel_leaf_size(2) = z;
     }
 
+    void enable_fast_downsampling(bool on_off, int point_n_target)
+    {
+        _fast_downsample = on_off;
+        _downsample_to_npoints = point_n_target;
+    }
+
     void filter(const common::SharedPointCloudRGB& cloud_in, common::PointCloudRGB::Ptr& cloud_out)
     {
         _indexbufA->indices.clear();
@@ -59,10 +65,16 @@ public:
         double t_frustum = timer.elapsed();
         timer.start();
 
-        _downsampler.setInputCloud (cloud_in);
-        _downsampler.setIndices(_indexbufA);
-        _downsampler.setLeafSize (_voxel_leaf_size(0), _voxel_leaf_size(1), _voxel_leaf_size(2));
-        _downsampler.filter(*cloud_out);
+        if (_fast_downsample) {
+            PreFilter::fast_downsampling(cloud_in, _indexbufA, cloud_out, _downsample_to_npoints);
+        }
+        else {
+            //use voxel grid
+            _downsampler.setInputCloud (cloud_in);
+            _downsampler.setIndices(_indexbufA);
+            _downsampler.setLeafSize (_voxel_leaf_size(0), _voxel_leaf_size(1), _voxel_leaf_size(2));
+            _downsampler.filter(*cloud_out);
+        }
 
         double t_downsample = timer.elapsed();
         timer.start();
@@ -77,7 +89,17 @@ public:
 #endif
     }
 
+    static void fast_downsampling(const common::SharedPointCloudRGB& cloud_in,
+                                  pcl::PointIndices::Ptr& indices,
+                                  common::PointCloudRGB::Ptr& cloud_out,
+                                  int target_n_points);
+
 protected:
+
+    bool _fast_downsample;
+    int _downsample_to_npoints;
+    boost::mt19937 _rnd_gen;
+
     Eigen::Vector3f _voxel_leaf_size;
 
     pcl::FrustumCulling<pcl::PointXYZRGB> _frustum;
@@ -89,7 +111,10 @@ protected:
     pcl::PointIndices::Ptr _indexbufB;
 };
 
-PreFilter::PreFilter() {
+PreFilter::PreFilter()
+    :_fast_downsample(false)
+    ,_downsample_to_npoints(5000)
+{
     //set_camera_matrix()
     Eigen::Matrix4f cam2robot;
     cam2robot << 0, 0, 1, 0,
@@ -101,6 +126,21 @@ PreFilter::PreFilter() {
     _indexbufA = pcl::PointIndices::Ptr(new pcl::PointIndices);
     _indexbufB = pcl::PointIndices::Ptr(new pcl::PointIndices);
     _cloud_buf = common::PointCloudRGB::Ptr(new common::PointCloudRGB);
+}
+
+void PreFilter::fast_downsampling(const common::SharedPointCloudRGB &cloud_in,
+                                  pcl::PointIndices::Ptr &indices,
+                                  common::PointCloudRGB::Ptr &cloud_out,
+                                  int target_n_points)
+{
+    if (indices->indices.size() > target_n_points)
+    {
+        std::random_shuffle(indices->indices.begin(), indices->indices.end());
+        indices->indices.resize(target_n_points);
+    }
+
+    pcl::copyPointCloud(*cloud_in,indices->indices,*cloud_out);
+
 }
 
 
