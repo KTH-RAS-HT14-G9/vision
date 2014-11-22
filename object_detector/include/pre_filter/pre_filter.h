@@ -61,6 +61,9 @@ public:
 
         _frustum.setInputCloud(cloud_in);
         _frustum.filter(_indexbufA->indices);
+//        _indexbufA->indices.resize(cloud_in->size());
+//        for(int i = 0; i < cloud_in->size(); ++i)
+//            _indexbufA->indices[i] = i;
 
         double t_frustum = timer.elapsed();
         timer.start();

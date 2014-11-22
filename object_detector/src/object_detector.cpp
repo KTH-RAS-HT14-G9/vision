@@ -6,6 +6,7 @@
 #include <common/types.h>
 #include <pcl_ros/point_cloud.h>
 #include <pre_filter/pre_filter.h>
+#include <pcl_transform/pcl_transform.h>
 #include <pcl_msgs/Vertices.h>
 #include <vision_msgs/ROI.h>
 
@@ -14,12 +15,15 @@ const double PUBLISH_FREQUENCY = 10.0;
 //------------------------------------------------------------------------------
 // Member variables
 
+bool _calibrated = false;
+
 ROIExtractor _roi_extractor;
 WallExtractor _wall_extractor;
 PreFilter _pre_filter;
+PclTransform _pcl_transform(0,0,0,0);
 
 common::SharedPointCloudRGB _pcloud;
-common::PointCloudRGB::Ptr _filtered;
+common::PointCloudRGB::Ptr _filtered, _transformed;
 Eigen::Matrix4f _camera_matrix;
 
 // Parameters of pre filter
@@ -46,6 +50,16 @@ Parameter<int> _cluster_max("/vision/rois/cluster_max", 5000);
 Parameter<double> _cluster_tolerance("/vision/rois/cluster_tolerance", 0.015);
 Parameter<double> _max_object_height("/vision/rois/max_object_height", 0.07);
 
+//------------------------------------------------------------------------------
+// For Transformation
+Parameter<double> _origin_x("/transform/origin/x",0);
+Parameter<double> _origin_y("/transform/origin/y",0);
+Parameter<double> _origin_z("/transform/origin/z",0);
+
+Parameter<double> _rot_x("/transform/rot/roll",0);
+Parameter<double> _rot_y("/transform/rot/pitch",0);
+Parameter<double> _rot_z("/transform/rot/yaw",0);
+
 
 void callback_point_cloud(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr& pcloud)
 {
@@ -66,6 +80,7 @@ int main(int argc, char **argv)
     Eigen::Vector3d leaf_size;
 
     _filtered = common::PointCloudRGB::Ptr(new common::PointCloudRGB);
+    _transformed = common::PointCloudRGB::Ptr(new common::PointCloudRGB);
     common::Timer timer;
 
     vision_msgs::ROIPtr roimsg = vision_msgs::ROIPtr(new vision_msgs::ROI);
@@ -86,26 +101,50 @@ int main(int argc, char **argv)
             _pre_filter.filter(_pcloud,_filtered);
 
             double t_prefilter = timer.elapsed();
+
+
+            double t_transform = 0;
+            if (_calibrated) {
+                timer.start();
+                _transformed->clear();
+                _pcl_transform.transform(_filtered, _transformed);
+                t_transform = timer.elapsed();
+
+//                tf::Vector3 origin(_origin_x(),_origin_y(),_origin_z());
+//                tf::Vector3 rot(_rot_x(), _rot_y(), _rot_z());
+//                _pcl_transform.transform(_filtered, _transformed,basis,origin,rot);
+            }
+            else {
+                std::swap(*_filtered,*_transformed);
+            }
+
             timer.start();
 
             _roi_extractor.set_cluster_constraints(_cluster_tolerance(), _cluster_min(), _cluster_max());
 
             leaf_size.setConstant(_leaf_size());
-            common::vision::SegmentedPlane::ArrayPtr walls = _wall_extractor.extract(_filtered,_distance_threshold(),_halt_condition(),leaf_size,_samples_max_dist());
+            common::vision::SegmentedPlane::ArrayPtr walls = _wall_extractor.extract(_transformed,_distance_threshold(),_halt_condition(),leaf_size,_samples_max_dist());
 
             double t_walls = timer.elapsed();
+
+            //calibrate
+            if (_calibrated == false && walls->size() > 0 && walls->at(0).is_ground_plane()) {
+                _pcl_transform.calibrate(walls->at(0));
+                _calibrated = true;
+            }
+
             timer.start();
 
-            common::vision::ROIArrayPtr rois = _roi_extractor.extract(walls,_filtered,_wall_thickness(),_max_object_height());
+            common::vision::ROIArrayPtr rois = _roi_extractor.extract(walls,_transformed,_wall_thickness(),_max_object_height());
             double t_rois = timer.elapsed();
 
             //TODO: ------------------------------------------------------------
             //find closest object and publish distance to closest point
 
-            double t_sum = t_prefilter+t_walls+t_rois;
+            double t_sum = t_transform+t_prefilter+t_walls+t_rois;
 
 #if ENABLE_TIME_PROFILING == 1
-            ROS_INFO("Time spent on vision. Sum: %.3lf | Prefilter: %.3lf | Walls: %.3lf | Rois: %.3lf\n", t_sum, t_prefilter, t_walls, t_rois);
+            ROS_INFO("Time spent on vision. Sum: %.3lf | Transform: %.3lf | Prefilter: %.3lf | Walls: %.3lf | Rois: %.3lf\n", t_sum, t_transform, t_prefilter, t_walls, t_rois);
 #endif
 
             roimsg->pointClouds.clear();
