@@ -1,3 +1,9 @@
+# Ignore rosbags
+*.bag
+
+# Ignore other stuff
+*.save
+
 # Ignore qtcreator files
 *.user
 *~
