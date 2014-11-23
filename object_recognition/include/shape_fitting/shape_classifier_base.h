@@ -10,7 +10,7 @@ class ShapeClassifierBase
 {
 public:
     ShapeClassifierBase(const std::string& name);
-    virtual double classify(const common::SharedPointCloudRGB& cloud, pcl::ModelCoefficients::Ptr& coefficients);
+    virtual common::NameAndProbability classify(const common::SharedPointCloudRGB& cloud, pcl::ModelCoefficients::Ptr& coefficients);
 
     virtual void visualize(pcl::visualization::PCLVisualizer &viewer, const pcl::ModelCoefficients& coefficients);
 
