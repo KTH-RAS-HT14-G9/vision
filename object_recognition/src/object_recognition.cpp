@@ -173,12 +173,14 @@ int main(int argc, char **argv)
 
 #endif
 
-        common::NameAndProbability classification_shape;
-        common::NameAndProbability classification_color;
+        _classifications.clear();
 
         //only classify, if ground plane visible
         for(int i = 0; i < _num_rois && _ground_plane != NULL; ++i)
         {
+            common::NameAndProbability classification_shape;
+            common::NameAndProbability classification_color;
+
 
 #if ENABLE_VISUALIZATION_RECOGNITION==1
             //-----------------------------------------------------------------
@@ -208,9 +210,6 @@ int main(int argc, char **argv)
 
             if (max_probability > _shape_thresh()) {
 
-                //determine color
-                classification_color = _classifier_color.classify(_clouds[i]);
-
                 ROS_ERROR("Object %d is a %s %s", i, classification_color.name().c_str(), classification_shape.name().c_str());
 
 #if ENABLE_VISUALIZATION_RECOGNITION
@@ -222,9 +221,38 @@ int main(int argc, char **argv)
 #endif
             }
             else {
+                classification_shape = common::NameAndProbability();
                 std::cerr << "No object recognized" << std::endl;
             }
 
+            //determine color
+            classification_color = _classifier_color.classify(_clouds[i]);
+
+            std::pair<common::NameAndProbability, common::NameAndProbability> classified_object;
+            classified_object.first = classification_shape;
+            classified_object.second = classification_color;
+            _classifications.push_back(classified_object);
+        }
+
+        //----------------------------------------------------------------------
+        // Determine strongest ROI classification
+        double max_shape_prob = 0;
+        int max_i = -1;
+        for (int i = 0; i < _classifications.size(); ++i)
+        {
+            if (_classifications[i].first.probability() > max_shape_prob)
+            {
+                max_shape_prob = _classifications[i].first.probability();
+                max_i = i;
+            }
+        }
+
+        common::NameAndProbability classification_shape;
+        common::NameAndProbability classification_color;
+
+        if (max_i >= 0) {
+            classification_shape = _classifications[max_i].first;
+            classification_color = _classifications[max_i].second;
         }
 
         std::string classified_object;
