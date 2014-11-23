@@ -20,7 +20,7 @@ bool _calibrated = false;
 ROIExtractor _roi_extractor;
 WallExtractor _wall_extractor;
 PreFilter _pre_filter;
-PclTransform _pcl_transform(0,0,0,0);
+PclTransform _pcl_transform(10,0,0,0,0);
 
 common::SharedPointCloudRGB _pcloud;
 common::PointCloudRGB::Ptr _filtered, _transformed;
@@ -51,13 +51,13 @@ Parameter<double> _max_object_height("/vision/rois/max_object_height", 0.07);
 
 //------------------------------------------------------------------------------
 // For Transformation
-Parameter<double> _origin_x("/transform/origin/x",0);
-Parameter<double> _origin_y("/transform/origin/y",0);
-Parameter<double> _origin_z("/transform/origin/z",0);
+//Parameter<double> _origin_x("/transform/origin/x",0);
+//Parameter<double> _origin_y("/transform/origin/y",0);
+//Parameter<double> _origin_z("/transform/origin/z",0);
 
-Parameter<double> _rot_x("/transform/rot/roll",0);
-Parameter<double> _rot_y("/transform/rot/pitch",0);
-Parameter<double> _rot_z("/transform/rot/yaw",0);
+//Parameter<double> _rot_x("/transform/rot/roll",0);
+//Parameter<double> _rot_y("/transform/rot/pitch",0);
+//Parameter<double> _rot_z("/transform/rot/yaw",0);
 
 
 void callback_point_cloud(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr& pcloud)
@@ -127,9 +127,10 @@ int main(int argc, char **argv)
 
             //calibrate
             if (_calibrated == false && walls->size() > 0 && walls->at(0).is_ground_plane()) {
-                _pcl_transform.calibrate(walls->at(0));
-                _wall_extractor.set_down_vector(Eigen::Vector3f(0,0,-1));
-                _calibrated = true;
+                _calibrated = _pcl_transform.calibrate(walls->at(0));
+
+                if(_calibrated==true)
+                    _wall_extractor.set_down_vector(Eigen::Vector3f(0,0,-1));
             }
 
             timer.start();

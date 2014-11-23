@@ -14,9 +14,9 @@
 
 class PclTransform {
 public:
-    PclTransform(double origin_x, double origin_y, double yaw, double roll);
+    PclTransform(int min_calib_it, double origin_x, double origin_y, double yaw, double roll);
 
-    void calibrate(const common::vision::SegmentedPlane& ground_plane);
+    bool calibrate(const common::vision::SegmentedPlane& ground_plane);
     void transform(const common::SharedPointCloudRGB& in, common::PointCloudRGB::Ptr& out);
 
     void transform(const common::SharedPointCloudRGB &in, common::PointCloudRGB::Ptr &out,
@@ -24,6 +24,11 @@ public:
                    const tf::Vector3& origin,
                    const tf::Vector3& rotation);
 protected:
+
+    void makeOriginAndRotation(Eigen::Vector3f& origin,
+                               Eigen::Vector3f& rotation,
+                               double x, double y, double z,
+                               double roll, double pitch, double yaw);
 
     void setRPY(double roll, double pitch, double yaw);
     void setOrigin(double x, double y, double z);
@@ -33,39 +38,47 @@ protected:
     tf::Transform _transform;
     Eigen::Vector3f _cam_origin;
     Eigen::Vector3f _cam_rotation;
+
+    double _origin_x, _origin_y;
+    double _yaw, _roll;
+
+    int _iterations;
+    int _max_iterations;
 };
 
-PclTransform::PclTransform(double origin_x, double origin_y, double roll, double yaw) {
+PclTransform::PclTransform(int min_calib_it, double origin_x, double origin_y, double roll, double yaw)
+    :_iterations(0)
+    ,_max_iterations(min_calib_it)
+    ,_origin_x(origin_x)
+    ,_origin_y(origin_y)
+    ,_roll(roll)
+    ,_yaw(yaw)
+{
     _transform.setIdentity();
 
-    setOrigin(origin_x,origin_y,0);
-    setRPY(roll,0,yaw);
+    _cam_origin.setConstant(0);
+    _cam_rotation.setConstant(0);
 }
 
-void PclTransform::setRPY(double roll, double pitch, double yaw)
+void PclTransform::makeOriginAndRotation(Eigen::Vector3f &origin, Eigen::Vector3f &rotation,
+                                         double x, double y, double z,
+                                         double roll, double pitch, double yaw)
 {
+    origin(0) = x;
+    origin(1) = y;
+    origin(2) = z;
+
     //set initial retransformation from z->forward to x->forward
-    /*roll*/_cam_rotation(0) = M_PI_2 + pitch;
-    /*pitch*/_cam_rotation(1) = M_PI + roll;
-    /*yaw*/_cam_rotation(2) = M_PI_2 + yaw;
+    rotation(0) = M_PI_2 + pitch;
+    rotation(1) = M_PI + roll;
+    rotation(2) = M_PI_2 + yaw;
 }
 
-void PclTransform::setPitch(double pitch)
+bool PclTransform::calibrate(const common::vision::SegmentedPlane& ground_plane)
 {
-    _cam_rotation(0) = M_PI_2 + pitch;
-}
+    if (_iterations == _max_iterations) return true;
 
-void PclTransform::setOrigin(double x, double y, double z)
-{
-    _cam_origin(0) = x;
-    _cam_origin(1) = y;
-    _cam_origin(2) = z;
-}
-
-void PclTransform::calibrate(const common::vision::SegmentedPlane& ground_plane)
-{
-    double z = ground_plane.distance(_cam_origin);
-    _cam_origin(2) = z;
+    double z = ground_plane.distance(Eigen::Vector3f(0,0,0));
 
     pcl::ModelCoefficientsConstPtr coeff = ground_plane.get_coefficients();
     Eigen::Vector3f normal(coeff->values[0],coeff->values[1],coeff->values[2]);
@@ -73,15 +86,41 @@ void PclTransform::calibrate(const common::vision::SegmentedPlane& ground_plane)
     Eigen::Vector3f up(0,1,0);
 
     double pitch = M_PI - acos(up.dot(normal) / (normal.norm() * up.norm()));
-    setPitch(-pitch);
 
-
-    _transform.setOrigin(tf::Vector3(_cam_origin(0),_cam_origin(1),_cam_origin(2)));
-    tf::Quaternion q;
-    q.setRPY(_cam_rotation(0),_cam_rotation(1),_cam_rotation(2));
-    _transform.setRotation(q);
 
     ROS_INFO("Z = %.3f, Pitch = %.3f",z,RAD2DEG(pitch));
+
+
+    Eigen::Vector3f origin;
+    Eigen::Vector3f rotation;
+
+    double x = _origin_x;
+    double y = _origin_y;
+    double roll = _roll;
+    double yaw = _yaw;
+    makeOriginAndRotation(origin, rotation, x,y,z, roll,-pitch,yaw);
+
+    _cam_origin += origin;
+    _cam_rotation += rotation;
+
+    _iterations++;
+
+    if (_iterations == _max_iterations) {
+
+        _cam_origin /= _max_iterations;
+        _cam_rotation /= _max_iterations;
+
+        _transform.setOrigin(tf::Vector3(_cam_origin(0),_cam_origin(1),_cam_origin(2)));
+        tf::Quaternion q;
+        q.setRPY(_cam_rotation(0),_cam_rotation(1),_cam_rotation(2));
+        _transform.setRotation(q);
+
+        ROS_ERROR("Finished calibration with z= %.4lf, pitch= %.4lf", _cam_origin(2), RAD2DEG(_cam_rotation(0)-M_PI_2));
+
+        return true;
+    }
+
+    return false;
 }
 
 void PclTransform::transform(const common::SharedPointCloudRGB &in, common::PointCloudRGB::Ptr &out)
