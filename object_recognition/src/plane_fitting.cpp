@@ -66,7 +66,7 @@ int PlaneFitting::rebuild_indices_for_inlier_flag(pcl::PointIndices::Ptr& indice
     return n;
 }
 
-double PlaneFitting::classify(const common::SharedPointCloudRGB &cloud, pcl::ModelCoefficients::Ptr &coefficients)
+common::NameAndProbability PlaneFitting::classify(const common::SharedPointCloudRGB &cloud, pcl::ModelCoefficients::Ptr &coefficients)
 {
     set_parameters();
 
@@ -122,7 +122,7 @@ double PlaneFitting::classify(const common::SharedPointCloudRGB &cloud, pcl::Mod
     if (_planes.size() > 0 && _planes.size() >= _min_planes) {
 
         if (_condition(_planes, _centroids) == false)
-            return 0;
+            return common::NameAndProbability(name(),0);
 
         build_multiple_plane_model(_planes, coefficients);
 
@@ -135,7 +135,7 @@ double PlaneFitting::classify(const common::SharedPointCloudRGB &cloud, pcl::Mod
             probability *= rectangular_measure(_planes);
     }
 
-    return probability;
+    return common::NameAndProbability(name(),probability);
 }
 
 void PlaneFitting::build_multiple_plane_model(std::vector<pcl::ModelCoefficients>& planes, pcl::ModelCoefficients::Ptr& coefficients)
