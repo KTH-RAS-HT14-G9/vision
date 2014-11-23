@@ -2,7 +2,7 @@
 
 ObjectConfirmation::ObjectConfirmation()
     :_min_ratio("/vision/recognition/confirmation/min_ratio",0.6)
-    ,_min_iterations("/vision/recognition/confirmation/min_frames",15)
+    ,_min_iterations("/vision/recognition/confirmation/min_frames",5)
     ,_reset_threshold("/vision/recognition/confirmation/reset_threshold",10)
     ,_empty_frames(0)
     ,_accumulated_frames(0)
@@ -44,6 +44,8 @@ double ObjectConfirmation::calculate_max_ratio(const std::map<std::string,int> &
 
 void ObjectConfirmation::reset_accumulation()
 {
+	ROS_INFO("-------------- RESET --------------");
+	_accumulated_frames = 0;
     _shape_accumulator.clear();
     _color_accumulator.clear();
 }
@@ -52,11 +54,12 @@ bool ObjectConfirmation::update(const common::NameAndProbability &shape,
                                 const common::NameAndProbability &color,
                                 std::string &confirmed_object)
 {
-    if (shape.is_undefined() && color.is_undefined()) {
+    if (shape.is_undefined()) {
         _empty_frames++;
 
         if (_empty_frames >= _reset_threshold()) {
             reset_accumulation();
+			_empty_frames = 0;
         }
 
         return false;

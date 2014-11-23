@@ -198,7 +198,7 @@ int main(int argc, char **argv)
                 pcl::ModelCoefficients::Ptr model_coefficients(new pcl::ModelCoefficients);
 
                 common::NameAndProbability classification = _classifier_shape[ci]->classify(_clouds[i],model_coefficients);
-                std::cerr << "Probability for " << classification.name() << ": " << classification.probability() << std::endl;
+//                std::cerr << "Probability for " << classification.name() << ": " << classification.probability() << std::endl;
 
                 if (classification.probability() > max_probability) {
                     max_probability = classification.probability();
@@ -210,7 +210,7 @@ int main(int argc, char **argv)
 
             if (max_probability > _shape_thresh()) {
 
-                ROS_ERROR("Object %d is a %s %s", i, classification_color.name().c_str(), classification_shape.name().c_str());
+                //ROS_ERROR("Object %d is a %s %s", i, classification_color.name().c_str(), classification_shape.name().c_str());
 
 #if ENABLE_VISUALIZATION_RECOGNITION
                 //-----------------------------------------------------------------
@@ -222,7 +222,7 @@ int main(int argc, char **argv)
             }
             else {
                 classification_shape = common::NameAndProbability();
-                std::cerr << "No object recognized" << std::endl;
+                //std::cerr << "No object recognized" << std::endl;
             }
 
             //determine color
@@ -266,7 +266,7 @@ int main(int argc, char **argv)
 
         ROS_INFO("Recognition - Time: %lf",timer.elapsed());
 
-        std::cerr << "---------------------------------------------" << std::endl << std::endl;
+//        std::cerr << "---------------------------------------------" << std::endl << std::endl;
 
         //------------------------------------------------------------------------------
         // Clear inputs

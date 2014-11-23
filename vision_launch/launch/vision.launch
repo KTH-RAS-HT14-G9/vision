@@ -6,10 +6,10 @@
   </include>
 
   <!-- start detection -->
-  <node pkg="object_detector" type="object_detector" name="object_detector"/>
+  <node pkg="object_detector" type="object_detector" name="object_detector" output="screen"/>
 
   <!-- start recognition -->
-  <node pkg="object_recognition" type="object_recognition" name="object_recognition" output="screen"/>
+  <node pkg="object_recognition" type="object_recognition" name="object_recognition" />
 
 
 </launch>
