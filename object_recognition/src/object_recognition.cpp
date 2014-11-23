@@ -13,11 +13,15 @@
 #include <common/visualization_addons.h>
 #endif
 
+Parameter<double> _dotprod_thresh("/vision/recognition/cube/dotprod_thresh",0.8);
+
 std::vector<ShapeClassifierBase*> _classifier;
 pcl::ModelCoefficients::Ptr _best_coeffs;
 std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr > _clouds;
 common::vision::SegmentedPlane::ArrayPtr _planes;
 common::vision::SegmentedPlane* _ground_plane = NULL;
+
+int _num_rois = 0;
 
 #if ENABLE_VISUALIZATION_RECOGNITION==1
 pcl::visualization::PCLVisualizer _viewer("Recognition");
@@ -26,12 +30,13 @@ common::Colors _colors;
 
 void callback_rois(const vision_msgs::ROIConstPtr& rois)
 {
-    while(_clouds.size() < rois->pointClouds.size()) {
+    _num_rois = rois->pointClouds.size();
+
+    while(_clouds.size() < _num_rois) {
         _clouds.push_back(pcl::PointCloud<pcl::PointXYZRGB>::Ptr(new pcl::PointCloud<pcl::PointXYZRGB>));
     }
 
-    for (int i = 0; i < rois->pointClouds.size(); ++i) {
-        _clouds[i]->clear();
+    for (int i = 0; i < _num_rois; ++i) {
         pcl::fromROSMsg<pcl::PointXYZRGB>(rois->pointClouds[i],*_clouds[i]);
     }
 
@@ -56,6 +61,11 @@ void callback_planes(const vision_msgs::PlanesConstPtr& msg)
 
 bool condition_cube(const std::vector<pcl::ModelCoefficients>& planes, const std::vector<Eigen::Vector4f>& centroids)
 {
+
+    //--------------------------------------------------------------------------
+    //0.: If there are 3 planes, then it is a cube
+    if (planes.size()==3) return true;
+
     //--------------------------------------------------------------------------
     //1.: There has to be a plane that is parallel to the ground plane
     const pcl::ModelCoefficientsConstPtr& ground_c = _ground_plane->get_coefficients();
@@ -67,7 +77,7 @@ bool condition_cube(const std::vector<pcl::ModelCoefficients>& planes, const std
     {
         Eigen::Vector3f n_plane(planes[i].values[0],planes[i].values[1],planes[i].values[2]);
 
-        double dot = n_ground.dot(n_plane);
+        double dot = std::abs(n_ground.dot(n_plane));
 
         if (dot > max_metric) {
             max_metric = dot;
@@ -76,8 +86,9 @@ bool condition_cube(const std::vector<pcl::ModelCoefficients>& planes, const std
     }
 
     //there is no parallel plane
-    if (max_metric < 0.8)
-        return false;
+    if (max_metric > _dotprod_thresh()){
+        return true;
+    }
 
     //--------------------------------------------------------------------------
     //2.: Distance between horizontal plane and parallel plane's centroid has to
@@ -86,8 +97,10 @@ bool condition_cube(const std::vector<pcl::ModelCoefficients>& planes, const std
     const Eigen::Vector4f& centroid = centroids[parallel_plane];
     Eigen::Vector3f parallel_centroid(centroid(0),centroid(1),centroid(2));
 
-    if (_ground_plane->distance(parallel_centroid) < 0.04)
+    double dist = _ground_plane->distance(parallel_centroid);
+    if (dist < 0.03 || dist > 0.05){
         return false;
+    }
 
     //--------------------------------------------------------------------------
     //3.: Centroid of the parallel plane has to have a greater distance
@@ -106,6 +119,7 @@ bool condition_cube(const std::vector<pcl::ModelCoefficients>& planes, const std
         if (plane_centroid.squaredNorm() > parallel_dist)
             return false;
     }
+
 
     return true;
 }
@@ -131,9 +145,10 @@ int main(int argc, char **argv)
     _classifier.push_back(new PlaneFitting("Cube",2,"/vision/recognition/cube/", condition_cube));
 
     //Manual set of parameters
-    //ros::param::set("/vision/recognition/sphere/dist_thresh",0.002);
+    ros::param::set("/vision/recognition/sphere/dist_thresh",0.001);
     ros::param::set("/vision/recognition/cylinder/dist_thresh",0.01);
     ros::param::set("/vision/recognition/cylinder/normal_dist_weight",0.01);
+    ros::param::set("/vision/recognition/sphere/normal_dist_weight",0.1);
 
     ros::Rate rate(10);
     common::Timer timer;
@@ -149,7 +164,7 @@ int main(int argc, char **argv)
 #endif
 
         //only classify, if ground plane visible
-        for(int i = 0; i < _clouds.size() && _ground_plane != NULL; ++i)
+        for(int i = 0; i < _num_rois && _ground_plane != NULL; ++i)
         {
 
 #if ENABLE_VISUALIZATION_RECOGNITION==1
@@ -188,7 +203,7 @@ int main(int argc, char **argv)
                 //Draw model
                 _classifier[ci_max]->visualize(_viewer,*_best_coeffs);
 
-                _viewer.spinOnce(1,true);
+                _viewer.spinOnce(30,true);
 #endif
             }
             else {
@@ -200,6 +215,11 @@ int main(int argc, char **argv)
         ROS_INFO("Recognition - Time: %lf",timer.elapsed());
 
         std::cerr << "---------------------------------------------" << std::endl << std::endl;
+
+        for (int i = 0; i < _clouds.size(); ++i) {
+            _clouds[i]->clear();
+            _num_rois = 0;
+        }
 
         ros::spinOnce();
         rate.sleep();
