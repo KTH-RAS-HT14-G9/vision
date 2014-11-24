@@ -30,7 +30,7 @@ void ModelFitting::set_parameter()
     _normal_est.setKSearch(_kd_k());
 }
 
-common::NameAndProbability ModelFitting::classify(const common::SharedPointCloudRGB &cloud, pcl::ModelCoefficients::Ptr &coefficients)
+common::Classification ModelFitting::classify(const common::SharedPointCloudRGB &cloud, pcl::ModelCoefficients::Ptr &coefficients)
 {
     set_parameter();
 
@@ -48,7 +48,7 @@ common::NameAndProbability ModelFitting::classify(const common::SharedPointCloud
     double nPoints = (double)cloud->size();
     double nInliers = (double)_inliers.indices.size();
 
-    return common::NameAndProbability(name(), nInliers/nPoints);
+    return common::Classification(name(), nInliers/nPoints);
 }
 
 void ModelFitting::visualize(pcl::visualization::PCLVisualizer &viewer, const pcl::ModelCoefficients& coefficients)

@@ -14,7 +14,7 @@ public:
                  const std::string& parameter_prefix,
                  PlaneCondition* condition);
 
-    virtual common::NameAndProbability classify(const common::SharedPointCloudRGB &cloud, pcl::ModelCoefficients::Ptr &coefficients);
+    virtual common::Classification classify(const common::SharedPointCloudRGB &cloud, pcl::ModelCoefficients::Ptr &coefficients);
 
     virtual void visualize(pcl::visualization::PCLVisualizer &viewer, const pcl::ModelCoefficients &coefficients);
 

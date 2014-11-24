@@ -9,7 +9,7 @@ ObjectConfirmation::ObjectConfirmation()
 {
 }
 
-void ObjectConfirmation::increment(std::map<std::string,int> &map, const common::NameAndProbability &name)
+void ObjectConfirmation::increment(std::map<std::string,int> &map, const common::Classification &name)
 {
     std::map<std::string,int>::iterator it = map.find(name.name());
     if( it == map.end() ) {
@@ -21,6 +21,18 @@ void ObjectConfirmation::increment(std::map<std::string,int> &map, const common:
     else {
         it->second++;
     }
+}
+
+void ObjectConfirmation::update_shape_attribute(const common::ObjectClassification& classification)
+{
+    std::pair<std::string,common::ObjectClassification> pair;
+    pair.first = classification.shape().name();
+    pair.second = classification;
+
+    if (_last_attributes.find(pair.first) != _last_attributes.end())
+        _last_attributes.erase(pair.first);
+
+    _last_attributes.insert(pair);
 }
 
 double ObjectConfirmation::calculate_max_ratio(const std::map<std::string,int> &map, std::string &max_key)
@@ -50,11 +62,11 @@ void ObjectConfirmation::reset_accumulation()
     _color_accumulator.clear();
 }
 
-bool ObjectConfirmation::update(const common::NameAndProbability &shape,
-                                const common::NameAndProbability &color,
-                                std::string &confirmed_object)
+bool ObjectConfirmation::update(const common::ObjectClassification& classification,
+                                common::ObjectClassification &confirmed_object)
 {
-    if (shape.is_undefined()) {
+    //if shape is undefined and the color is not plurple
+    if (classification.shape().is_undefined() && classification.color().name().compare("plurple") != 0) {
         _empty_frames++;
 
         if (_empty_frames >= _reset_threshold()) {
@@ -67,8 +79,12 @@ bool ObjectConfirmation::update(const common::NameAndProbability &shape,
 
     _accumulated_frames++;
 
-    if (!shape.is_undefined()) increment(_shape_accumulator,shape);
-    if (!color.is_undefined()) increment(_color_accumulator,color);
+    if (!classification.shape().is_undefined()) {
+        increment(_shape_accumulator,classification.shape());
+        update_shape_attribute(classification);
+    }
+    if (!classification.color().is_undefined())
+        increment(_color_accumulator,classification.color());
 
 
     //--------------------------------------------------------------------------
@@ -84,24 +100,24 @@ bool ObjectConfirmation::update(const common::NameAndProbability &shape,
 
         if (ratio_color > _min_ratio() && name_color.compare("plurple") == 0)
         {
-            confirmed_object = "purple cross";
+            confirmed_object = common::ObjectClassification(
+                        common::Classification(),
+                        common::Classification(name_color,1));
             reset_accumulation();
             return true;
         }
 
-        confirmed_object = "";
+        common::Classification color,shape;
         if (ratio_color > _min_ratio())
         {
-            confirmed_object = name_color;
+            color = common::Classification(name_color,1);
         }
         if (ratio_shape > _min_ratio())
         {
-            confirmed_object += " " + name_shape;
+            shape = _last_attributes.at(name_shape).shape();
         }
 
-        if (confirmed_object.empty())
-            confirmed_object = "object";
-
+        confirmed_object = common::ObjectClassification(shape,color);
 
         reset_accumulation();
         return true;

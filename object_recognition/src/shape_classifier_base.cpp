@@ -10,9 +10,9 @@ void ShapeClassifierBase::visualize(pcl::visualization::PCLVisualizer &viewer, c
 
 }
 
-common::NameAndProbability ShapeClassifierBase::classify(const common::SharedPointCloudRGB &cloud, pcl::ModelCoefficients::Ptr &coefficients)
+common::Classification ShapeClassifierBase::classify(const common::SharedPointCloudRGB &cloud, pcl::ModelCoefficients::Ptr &coefficients)
 {
-    return common::NameAndProbability();
+    return common::Classification();
 }
 
 std::string ShapeClassifierBase::name()

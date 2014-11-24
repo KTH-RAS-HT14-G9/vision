@@ -13,7 +13,7 @@ class ModelFitting : public ShapeClassifierBase
 public:
     ModelFitting(const std::string& name, pcl::SacModel model, const std::string& parameter_prefix);
 
-    virtual common::NameAndProbability classify(const common::SharedPointCloudRGB& cloud, pcl::ModelCoefficients::Ptr& coefficients);
+    virtual common::Classification classify(const common::SharedPointCloudRGB& cloud, pcl::ModelCoefficients::Ptr& coefficients);
 
     virtual void visualize(pcl::visualization::PCLVisualizer &viewer, const pcl::ModelCoefficients& coefficients);
 

@@ -12,7 +12,7 @@ public:
     ShapeRecognition();
     ~ShapeRecognition();
 
-    common::NameAndProbability classify(const common::PointCloudRGB::Ptr &roi,
+    common::Classification classify(const common::PointCloudRGB::Ptr &roi,
                                         const common::vision::SegmentedPlane::ArrayPtr& planes,
                                         const common::vision::SegmentedPlane* ground_plane);
 

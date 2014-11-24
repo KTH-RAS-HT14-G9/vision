@@ -9,6 +9,7 @@
 #include <common/parameter.h>
 #include <common/debug.h>
 #include <common/segmented_plane.h>
+#include <common/object_classification.h>
 
 #if ENABLE_VISUALIZATION_RECOGNITION==1
 #include <pcl/visualization/pcl_visualizer.h>
@@ -23,7 +24,7 @@ std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr > _clouds;
 common::vision::SegmentedPlane::ArrayPtr _planes;
 common::vision::SegmentedPlane* _ground_plane = NULL;
 
-std::vector<std::pair<common::NameAndProbability, common::NameAndProbability> > _classifications;
+std::vector<common::ObjectClassification > _classifications;
 
 int _num_rois = 0;
 
@@ -102,8 +103,8 @@ int main(int argc, char **argv)
         //only classify, if ground plane visible
         for(int i = 0; i < _num_rois && _ground_plane != NULL; ++i)
         {
-            common::NameAndProbability classification_shape;
-            common::NameAndProbability classification_color;
+            common::Classification classification_shape;
+            common::Classification classification_color;
 
 
 #if ENABLE_VISUALIZATION_RECOGNITION==1
@@ -121,9 +122,7 @@ int main(int argc, char **argv)
             //determine color
             classification_color = _classifier_color.classify(_clouds[i]);
 
-            std::pair<common::NameAndProbability, common::NameAndProbability> classified_object;
-            classified_object.first = classification_shape;
-            classified_object.second = classification_color;
+            common::ObjectClassification classified_object(classification_shape,classification_color);
             _classifications.push_back(classified_object);
         }
 
@@ -134,30 +133,29 @@ int main(int argc, char **argv)
         int max_i = -1;
         for (int i = 0; i < _classifications.size(); ++i)
         {
-            if (_classifications[i].first.probability() > max_shape_prob)
+            if (_classifications[i].shape().probability() > max_shape_prob)
             {
-                max_shape_prob = _classifications[i].first.probability();
+                max_shape_prob = _classifications[i].shape().probability();
                 max_i = i;
             }
         }
 
-        common::NameAndProbability classification_shape;
-        common::NameAndProbability classification_color;
 
+        common::ObjectClassification strongest_classification;
         if (max_i >= 0) {
-            classification_shape = _classifications[max_i].first;
-            classification_color = _classifications[max_i].second;
+            strongest_classification = _classifications[max_i];
         }
+
 
         //------------------------------------------------------------------------------
         // Send classifications to object confirmation
 
-        std::string classified_object;
-        if(_object_confirmation.update(classification_shape,classification_color,classified_object))
+        common::ObjectClassification classified_object;
+        if(_object_confirmation.update(strongest_classification,classified_object))
         {
-            ROS_ERROR("Publishing %s to espeak.", classified_object.c_str());
+            ROS_ERROR("Publishing %s to espeak.", classified_object.espeak_text().c_str());
             std_msgs::String msg;
-            msg.data = classified_object;
+            msg.data = classified_object.espeak_text();
             pub_espeak.publish(msg);
         }
 
