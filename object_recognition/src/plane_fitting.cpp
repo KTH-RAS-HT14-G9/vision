@@ -4,7 +4,7 @@
 PlaneFitting::PlaneFitting(const std::string &name,
                            int min_planes,
                            const std::string &parameter_prefix,
-                           bool (*condition)(const std::vector<pcl::ModelCoefficients>&, const std::vector<Eigen::Vector4f>&))
+                           PlaneCondition* condition)
     :ShapeClassifierBase(name)
     ,_distance_threshold(parameter_prefix+"dist_thresh", 0.005)
     ,_halt_condition(parameter_prefix+"halt_condition", 0.05)
@@ -66,7 +66,7 @@ int PlaneFitting::rebuild_indices_for_inlier_flag(pcl::PointIndices::Ptr& indice
     return n;
 }
 
-common::NameAndProbability PlaneFitting::classify(const common::SharedPointCloudRGB &cloud, pcl::ModelCoefficients::Ptr &coefficients)
+common::Classification PlaneFitting::classify(const common::SharedPointCloudRGB &cloud, pcl::ModelCoefficients::Ptr &coefficients)
 {
     set_parameters();
 
@@ -121,8 +121,8 @@ common::NameAndProbability PlaneFitting::classify(const common::SharedPointCloud
 
     if (_planes.size() > 0 && _planes.size() >= _min_planes) {
 
-        if (_condition(_planes, _centroids) == false)
-            return common::NameAndProbability(name(),0);
+        if (_condition->condition(_planes,_centroids) == false)
+            return common::Classification(name(),0);
 
         build_multiple_plane_model(_planes, coefficients);
 
@@ -135,7 +135,7 @@ common::NameAndProbability PlaneFitting::classify(const common::SharedPointCloud
             probability *= rectangular_measure(_planes);
     }
 
-    return common::NameAndProbability(name(),probability);
+    return common::Classification(name(),probability);
 }
 
 void PlaneFitting::build_multiple_plane_model(std::vector<pcl::ModelCoefficients>& planes, pcl::ModelCoefficients::Ptr& coefficients)

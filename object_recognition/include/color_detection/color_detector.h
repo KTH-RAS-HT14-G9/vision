@@ -1,7 +1,7 @@
 #ifndef COLOR_DETECTOR_H
 #define COLOR_DETECTOR_H
 
-#include <common/types.h>
+#include <common/classification.h>
 #include "color_classifier.h"
 
 class ColorDetector
@@ -9,7 +9,7 @@ class ColorDetector
 public:
     ColorDetector();
 
-    common::NameAndProbability classify(const common::PointCloudRGB::Ptr &roi);
+    common::Classification classify(const common::PointCloudRGB::Ptr &roi);
 
 protected:
 

@@ -47,7 +47,7 @@ double ColorDetector::extractHue(int rgb)
     return h;
 }
 
-common::NameAndProbability ColorDetector::classify(const common::PointCloudRGB::Ptr &roi)
+common::Classification ColorDetector::classify(const common::PointCloudRGB::Ptr &roi)
 {
     //--------------------------------------------------------------------------
     // Convert
@@ -56,7 +56,7 @@ common::NameAndProbability ColorDetector::classify(const common::PointCloudRGB::
     ////for points in one pointcloud
     int numpoints = roi->size();
 
-    if(numpoints==0) return common::NameAndProbability();
+    if(numpoints==0) return common::Classification();
 
     _hues.resize(numpoints);
     for(int j=0; j < numpoints; j++)
@@ -96,7 +96,7 @@ common::NameAndProbability ColorDetector::classify(const common::PointCloudRGB::
 
     std::cout << "It is " << _classifiers[best_i].name() << std::endl;
 
-    return common::NameAndProbability(_classifiers[best_i].name(), max_probability);
+    return common::Classification(_classifiers[best_i].name(), max_probability);
 
 }
 
