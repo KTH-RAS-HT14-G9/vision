@@ -4,7 +4,7 @@
 PlaneFitting::PlaneFitting(const std::string &name,
                            int min_planes,
                            const std::string &parameter_prefix,
-                           bool (*condition)(const std::vector<pcl::ModelCoefficients>&, const std::vector<Eigen::Vector4f>&))
+                           PlaneCondition* condition)
     :ShapeClassifierBase(name)
     ,_distance_threshold(parameter_prefix+"dist_thresh", 0.005)
     ,_halt_condition(parameter_prefix+"halt_condition", 0.05)
@@ -121,7 +121,7 @@ common::NameAndProbability PlaneFitting::classify(const common::SharedPointCloud
 
     if (_planes.size() > 0 && _planes.size() >= _min_planes) {
 
-        if (_condition(_planes, _centroids) == false)
+        if (_condition->condition(_planes,_centroids) == false)
             return common::NameAndProbability(name(),0);
 
         build_multiple_plane_model(_planes, coefficients);
