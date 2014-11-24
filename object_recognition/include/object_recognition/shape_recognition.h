@@ -24,12 +24,14 @@ protected:
 
     bool condition_cube(const std::vector<pcl::ModelCoefficients>& planes, const std::vector<Eigen::Vector4f>& centroids);
 
+    bool _parameter_initiated;
+
     Parameter<double> _dotprod_thresh;
     Parameter<double> _shape_thresh;
 
     pcl::ModelCoefficients::Ptr _best_coeffs;
     std::vector<ShapeClassifierBase*> _classifiers;
-    common::vision::SegmentedPlane* _ground_plane;
+    const common::vision::SegmentedPlane* _ground_plane;
 
     boost::shared_ptr<pcl::visualization::PCLVisualizer> _viewer;
 };

@@ -4,16 +4,11 @@
 ShapeRecognition::ShapeRecognition()
     :_dotprod_thresh("/vision/recognition/cube/dotprod_thresh",0.8)
     ,_shape_thresh("/vision/recognition/shape_threshold",0.7)
+    ,_parameter_initiated(false)
 {
     _classifiers.push_back(new ModelFitting("Sphere",pcl::SACMODEL_SPHERE,"/vision/recognition/sphere/"));
     _classifiers.push_back(new ModelFitting("Cylinder",pcl::SACMODEL_CYLINDER,"/vision/recognition/cylinder/"));
     _classifiers.push_back(new PlaneFitting("Cube",2,"/vision/recognition/cube/", this));
-
-    //Manual set of parameters
-    ros::param::set("/vision/recognition/sphere/dist_thresh",0.001);
-    ros::param::set("/vision/recognition/cylinder/dist_thresh",0.01);
-    ros::param::set("/vision/recognition/cylinder/normal_dist_weight",0.01);
-    ros::param::set("/vision/recognition/sphere/normal_dist_weight",0.1);
 }
 
 ShapeRecognition::~ShapeRecognition()
@@ -96,6 +91,17 @@ common::NameAndProbability ShapeRecognition::classify(const common::PointCloudRG
                                                       const common::vision::SegmentedPlane::ArrayPtr &planes,
                                                       const common::vision::SegmentedPlane *ground_plane)
 {
+    _ground_plane = ground_plane;
+
+    if (!_parameter_initiated) {
+        _parameter_initiated = true;
+        //Manual set of parameters
+        ros::param::set("/vision/recognition/sphere/dist_thresh",0.001);
+        ros::param::set("/vision/recognition/cylinder/dist_thresh",0.01);
+        ros::param::set("/vision/recognition/cylinder/normal_dist_weight",0.01);
+        ros::param::set("/vision/recognition/sphere/normal_dist_weight",0.1);
+    }
+
     double max_probability = 0.0;
 
     common::NameAndProbability classification_shape;

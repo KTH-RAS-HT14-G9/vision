@@ -93,6 +93,9 @@ void ColorClassifier::build_histogram(double hue)
         {
             idx = idx%NBINS;
         }
+        if (idx < 0 || idx > _histogram.size())
+            ROS_ERROR("Index out of bounds. Fix this: %d",idx);
+
         _histogram[idx]=_histogram[idx]+gauss_mask[i+2]* weight_color(hue);
         //std::cout << _reference_hue << "\t" << hue << "\t" << weight_color(hue)<<"\n";
     }
@@ -121,11 +124,13 @@ double ColorClassifier::classify(const std::vector<double> &hues)
     int neighbour=7;
     for ( int i=(-(neighbour-1)/2); i<(neighbour-(neighbour-1)/2);i++)
     {
-        if (_histogram[_reference_hue+i] > max) max=_histogram[_reference_hue+i];
+        int k = ((int)_reference_hue + i) % NBINS;
+
+        if (_histogram[k] > max) max = _histogram[k];
     }
 
     double sum=0;
-    for (int i=0;i<NBINS;++i)
+    for (int i=0;i < NBINS;++i)
     {
         sum=sum+_histogram[i];
     }
@@ -135,7 +140,7 @@ double ColorClassifier::classify(const std::vector<double> &hues)
     if (sum==0) probability=0;
     //std::cout<< _reference_hue << "\t" <<sum <<std::endl;
 
-    std::cout << _count_ref_hue << "\t" << _count_orange << "\t" << hues.size() << std::endl;
+    //std::cout << _count_ref_hue << "\t" << _count_orange << "\t" << hues.size() << std::endl;
 
     probability=probability*_count_ref_hue/hues.size();
 
@@ -145,7 +150,7 @@ double ColorClassifier::classify(const std::vector<double> &hues)
     if(_count_orange>10) prob=(double)_count_ref_hue/((double)_count_ref_hue+(double)_count_orange);
     else prob=prob=(double)_count_ref_hue/(double) hues.size();
 
-    std::cout << probability << "\t" << prob << std::endl;
+    //std::cout << probability << "\t" << prob << std::endl;
 
     /////////////
 
