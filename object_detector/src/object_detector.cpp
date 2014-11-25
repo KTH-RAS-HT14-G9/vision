@@ -1,14 +1,18 @@
 #include <roi_extractor/roi_extractor.h>
+#include <wall_detector/wall_extractor.h>
+#include <pre_filter/pre_filter.h>
+
+#include <pcl_ros/point_cloud.h>
+#include <pcl_transform/pcl_transform.h>
+
+#include <pcl_msgs/Vertices.h>
 #include <sensor_msgs/Image.h>
 #include <std_msgs/Float64.h>
-#include <wall_detector/wall_extractor.h>
+#include <vision_msgs/ROI.h>
+
 #include <common/parameter.h>
 #include <common/types.h>
-#include <pcl_ros/point_cloud.h>
-#include <pre_filter/pre_filter.h>
-#include <pcl_transform/pcl_transform.h>
-#include <pcl_msgs/Vertices.h>
-#include <vision_msgs/ROI.h>
+#include <common/marker_delegate.h>
 
 const double PUBLISH_FREQUENCY = 10.0;
 
@@ -21,6 +25,7 @@ ROIExtractor _roi_extractor;
 WallExtractor _wall_extractor;
 PreFilter _pre_filter;
 PclTransform _pcl_transform(10,0,0,0,0);
+common::MarkerDelegate _marker_delegate("robot","walls");
 
 common::SharedPointCloudRGB _pcloud;
 common::PointCloudRGB::Ptr _filtered, _transformed;
@@ -71,9 +76,10 @@ int main(int argc, char **argv)
 
     ros::NodeHandle n;
     ros::Subscriber sub_pcloud = n.subscribe<pcl::PointCloud<pcl::PointXYZRGB> >("/camera/depth_registered/points", 3, callback_point_cloud);
-    ros::Publisher pub_detection = n.advertise<std_msgs::Float64>("/vision/detector/obstacle/distance",1);
-    ros::Publisher pub_rois = n.advertise<vision_msgs::ROI>("/vision/obstacles/rois",1);
-    ros::Publisher pub_planes = n.advertise<vision_msgs::Planes>("/vision/obstacles/planes",1);
+    ros::Publisher pub_detection = n.advertise<std_msgs::Float64>("/vision/detector/obstacle/distance",10);
+    ros::Publisher pub_rois = n.advertise<vision_msgs::ROI>("/vision/obstacles/rois",10);
+    ros::Publisher pub_planes = n.advertise<vision_msgs::Planes>("/vision/obstacles/planes",10);
+    ros::Publisher pub_viz = n.advertise<visualization_msgs::MarkerArray>("visualization_marker_array",10);
 
     ros::Rate loop_rate(PUBLISH_FREQUENCY);
     Eigen::Vector3d leaf_size;
@@ -154,6 +160,11 @@ int main(int argc, char **argv)
             planesmsg->planes.clear();
             common::vision::planesToMsg(walls,planesmsg);
             pub_planes.publish(planesmsg);
+
+
+            _marker_delegate.add(planesmsg);
+            pub_viz.publish(_marker_delegate.get());
+            _marker_delegate.clear();
 
         }
 

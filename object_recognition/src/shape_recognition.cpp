@@ -149,7 +149,7 @@ common::Classification ShapeRecognition::classify(const common::PointCloudRGB::P
 #if ENABLE_VISUALIZATION_RECOGNITION == 1
         //----------------------------------------------------------------------
         //Draw model
-        _classifier[ci_max]->visualize(*_viewer,*_best_coeffs);
+        _classifiers[ci_max]->visualize(*_viewer,*_best_coeffs);
 
         _viewer.spinOnce(30,true);
 #endif
