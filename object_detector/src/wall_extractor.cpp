@@ -1,9 +1,9 @@
 #include "wall_detector/wall_extractor.h"
 #include <pre_filter/pre_filter.h>
+#include <pcl/common/geometry.h>
+
 #include <common/types.h>
 #include <common/world.h>
-#include <pcl/common/geometry.h>
-#include <tf/tf.h>
 
 WallExtractor::WallExtractor()
     :_down(0,-1,0)
@@ -325,11 +325,6 @@ void WallExtractor::determine_XY_bounding_box(const pcl::ModelCoefficients& plan
         centroid(2) = height/2;
         Eigen::Vector3f normal3d(normal_xy(0),normal_xy(1),0);
         q.setFromTwoVectors(forward,normal3d);
-//        tf::Quaternion qq(q.x(),q.y(),q.z(),q.w());
-//        tf::Matrix3x3 m(qq);
-//        double roll,pitch,yaw;
-//        m.getRPY(roll,pitch,yaw);
-//        std::cout << "ff";
 
     }
 
