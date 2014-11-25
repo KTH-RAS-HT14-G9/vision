@@ -104,7 +104,7 @@ void ColorClassifier::build_histogram(double hue)
     }
 }
 
-
+// function to weight the probabilities based on the amount of points of a given color given the total number of points. defined by 2 lines 0-0.5 and 0.5-1
 double ColorClassifier::weight_refsize(int total_size)
 {
     std::cout << "total_size: " << total_size << std::endl;
@@ -115,7 +115,7 @@ double ColorClassifier::weight_refsize(int total_size)
     else
     {
         if (percent >= 0.5) return 0.5*percent + 0.5; // y=x/2+1/2
-        else return percent;
+        else return percent; //y=x
     }
 }
 
