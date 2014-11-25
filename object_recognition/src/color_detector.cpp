@@ -40,7 +40,7 @@ double ColorDetector::extractHue(int rgb)
 
     if      (max == r) h = 60.f * (      static_cast <float> (g - b) / diff);
     else if (max == g) h = 60.f * (2.f + static_cast <float> (b - r) / diff);
-    else                  h = 60.f * (4.f + static_cast <float> (r - g) / diff); // max == b
+    else               h = 60.f * (4.f + static_cast <float> (r - g) / diff); // max == b
 
     if (h < 0.f) h += 360.f;
 
