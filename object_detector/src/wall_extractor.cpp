@@ -157,22 +157,22 @@ common::vision::SegmentedPlane::ArrayPtr WallExtractor::extract(const common::Sh
         common::Color c = _colors.next();
         pcl::visualization::AddPointCloud(_viewer, _cloud_p, ss.str(), c.r, c.g, c.b);
 
-        Eigen::Vector4d centroid;
-        pcl::compute3DCentroid<pcl::PointXYZRGB>(*_cloud_p, centroid);
-        _viewer.addPlane(*coefficients,centroid(0),centroid(1),centroid(2),ss.str());
+//        Eigen::Vector4d centroid;
+//        pcl::compute3DCentroid<pcl::PointXYZRGB>(*_cloud_p, centroid);
+//        _viewer.addPlane(*coefficients,centroid(0),centroid(1),centroid(2),ss.str());
 
-        PointCloudRGB::Ptr cloud_projected = PointCloudRGB::Ptr(new PointCloudRGB);
+//        PointCloudRGB::Ptr cloud_projected = PointCloudRGB::Ptr(new PointCloudRGB);
 
-        _proj.setInputCloud (_cloud_p);
-        _proj.setModelCoefficients (coefficients);
-        _proj.filter (*cloud_projected);
+//        _proj.setInputCloud (_cloud_p);
+//        _proj.setModelCoefficients (coefficients);
+//        _proj.filter (*cloud_projected);
 
-        PointCloudRGB::Ptr cloud_hull = PointCloudRGB::Ptr(new PointCloudRGB);
-        _hull.setInputCloud(cloud_projected);
-        _hull.reconstruct(*cloud_hull);
-        _hull.setDimension(2);
+//        PointCloudRGB::Ptr cloud_hull = PointCloudRGB::Ptr(new PointCloudRGB);
+//        _hull.setInputCloud(cloud_projected);
+//        _hull.reconstruct(*cloud_hull);
+//        _hull.setDimension(2);
 
-        _viewer.addPolygon<pcl::PointXYZRGB>(cloud_hull, c.r, c.g, c.b, ss.str());
+//        _viewer.addPolygon<pcl::PointXYZRGB>(cloud_hull, c.r, c.g, c.b, ss.str());
 
         ss << "_obb";
         _viewer.addCube(obb.get_translation(), obb.get_rotation(), obb.get_width(), obb.get_height(), obb.get_depth(), ss.str());
