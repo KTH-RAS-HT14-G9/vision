@@ -3,6 +3,7 @@
 #include <common/types.h>
 #include <common/world.h>
 #include <pcl/common/geometry.h>
+#include <tf/tf.h>
 
 WallExtractor::WallExtractor()
     :_down(0,-1,0)
@@ -174,7 +175,7 @@ common::vision::SegmentedPlane::ArrayPtr WallExtractor::extract(const common::Sh
         _viewer.addPolygon<pcl::PointXYZRGB>(cloud_hull, c.r, c.g, c.b, ss.str());
 
         ss << "_obb";
-        _viewer.addCube(obb.get_translation(), obb.get_rotation(), obb.get_height(), obb.get_depth(), obb.get_depth(), ss.str());
+        _viewer.addCube(obb.get_translation(), obb.get_rotation(), obb.get_width(), obb.get_height(), obb.get_depth(), ss.str());
 #endif
 
         // Create the filtering object
@@ -248,23 +249,22 @@ void WallExtractor::determine_XY_bounding_box(const pcl::ModelCoefficients& plan
                                               common::OrientedBoundingBox& obb)
 {
     Eigen::Vector2f normal_xy(plane.values[0],plane.values[1]);
+    normal_xy.normalize();
 
     Eigen::Vector3f up(0,0,1);
-    Eigen::Vector3f lateral(0,1,0);
-    Eigen::Vector3f longitudinal(1,0,0);
+    Eigen::Vector3f lateral(normal_xy(0),normal_xy(1),0);
+    Eigen::Vector3f longitudinal(-lateral(1),lateral(0),0);
 
     Eigen::Vector3f p;
     Eigen::Vector3f centroid(0,0,0);
 
-    normal_xy.normalize();
-
     //project points onto normal (y) and orthogonal (x) to determine width and depth
-    float min_x = std::numeric_limits<float>::infinity();
-    float max_x = -std::numeric_limits<float>::infinity();
-    float min_y = std::numeric_limits<float>::infinity();
-    float max_y = -std::numeric_limits<float>::infinity();
-    float min_z = std::numeric_limits<float>::infinity();
-    float max_z = -std::numeric_limits<float>::infinity();
+    float min_long = std::numeric_limits<float>::infinity();
+    float max_long = -std::numeric_limits<float>::infinity();
+    float min_lat = std::numeric_limits<float>::infinity();
+    float max_lat = -std::numeric_limits<float>::infinity();
+    float min_vert = std::numeric_limits<float>::infinity();
+    float max_vert = -std::numeric_limits<float>::infinity();
 
     for(std::vector<int>::const_iterator it = indices.begin(); it != indices.end(); ++it)
     {
@@ -274,47 +274,66 @@ void WallExtractor::determine_XY_bounding_box(const pcl::ModelCoefficients& plan
         p(1) = p3d.y;
         p(2) = p3d.z;
 
-        centroid += p;
-
         float x = project(longitudinal, p);
         float y = project(lateral, p);
         float z = project(up, p);
 
-        if (x < min_x) min_x = x;
-        else if (x > max_x) max_x = x;
+        if (x < min_long) min_long = x;
+        else if (x > max_long) max_long = x;
 
-        if (y < min_y) min_y = y;
-        else if (y > max_y) max_y = y;
+        if (y < min_lat) min_lat = y;
+        else if (y > max_lat) max_lat = y;
 
-        if (z < min_z) min_z = z;
-        else if (z > max_z) max_z = z;
+        if (z < min_vert) min_vert = z;
+        else if (z > max_vert) max_vert = z;
     }
 
     //determine width and depth
-    float width = std::abs(max_y - min_y);
-    float depth = std::abs(max_x - min_x);
-    float height = std::abs(max_z - min_z);
+    float width = std::abs(max_long - min_long);
+    float depth = std::abs(max_lat - min_lat);
+    float height = std::abs(max_vert - min_vert);
 
     //determine centroid
-    centroid /= indices.size();
+    centroid(0) = (max_long + min_long)/2.0;
+    centroid(1) = (max_lat + min_lat)/2.0;
+    centroid(2) = (max_vert + min_vert)/2.0;
+
+    float x = project(centroid,longitudinal);
+    float y = project(centroid,lateral);
+    float z = project(centroid,up);
+
+    centroid(0) = x;
+    centroid(1) = y;
+    centroid(2) = z;
+
+
 
 
     Eigen::Quaternionf q;
     Eigen::Vector3f forward(1,0,0);
     if (std::abs(centroid(2)) < 0.05 ) {
         //it's a horizontal plane
+        //TODO: cannot build correct bounding box here
         centroid(2) = 0;
-        height = world::walls::thickness/10.0;
         q.setIdentity();
+
+        std::swap(width,depth);
+        height = world::walls::thickness/10.0;
     }
     else {
         //it's a vertical plane
         centroid(2) = height/2;
         Eigen::Vector3f normal3d(normal_xy(0),normal_xy(1),0);
         q.setFromTwoVectors(forward,normal3d);
+//        tf::Quaternion qq(q.x(),q.y(),q.z(),q.w());
+//        tf::Matrix3x3 m(qq);
+//        double roll,pitch,yaw;
+//        m.getRPY(roll,pitch,yaw);
+//        std::cout << "ff";
+
     }
 
     //determine rotation
-
-    obb = common::OrientedBoundingBox(centroid, q, width,height,depth);
+    //obb = common::OrientedBoundingBox(centroid, q, width,height,depth);
+    obb = common::OrientedBoundingBox(centroid, q, depth,width,height);
 }
