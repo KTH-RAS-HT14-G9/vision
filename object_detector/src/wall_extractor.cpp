@@ -1,6 +1,9 @@
 #include "wall_detector/wall_extractor.h"
 #include <pre_filter/pre_filter.h>
 #include <common/types.h>
+#include <common/world.h>
+#include <pcl/common/geometry.h>
+#include <tf/tf.h>
 
 WallExtractor::WallExtractor()
     :_down(0,-1,0)
@@ -20,6 +23,10 @@ WallExtractor::WallExtractor()
     _cloud_filtered = PointCloudRGB::Ptr(new PointCloudRGB);
     _cloud_p = PointCloudRGB::Ptr(new PointCloudRGB);
     _cloud_f = PointCloudRGB::Ptr(new PointCloudRGB);
+
+    _cluster_ex.setClusterTolerance(0.1);
+    _cluster_ex.setMinClusterSize(20);
+    _cluster_ex.setMaxClusterSize(std::numeric_limits<int>::max());
 
 #if ENABLE_VISUALIZATION_PLANES==1
     //visualization::PCLVisualizer viewer("Viewer");
@@ -102,8 +109,7 @@ common::vision::SegmentedPlane::ArrayPtr WallExtractor::extract(const common::Sh
 
         // Segment the largest planar component from the remaining cloud
         _seg.setInputCloud (_cloud_filtered);
-        _kd_tree->setInputCloud(_cloud_filtered);
-        _seg.setSamplesMaxDist(samples_max_dist, _kd_tree);
+        //_seg.setSamplesMaxDist(samples_max_dist, _kd_tree);
         _seg.segment (*inliers, *coefficients);
         if (inliers->indices.size () == 0)
         {
@@ -111,38 +117,62 @@ common::vision::SegmentedPlane::ArrayPtr WallExtractor::extract(const common::Sh
             break;
         }
 
+        //Take only biggest cluster of inliers to determine the bounding box
+        std::vector<pcl::PointIndices> clusters;
+        _kd_tree->setInputCloud(_cloud_filtered);
+        _cluster_ex.setIndices(inliers);
+        _cluster_ex.setInputCloud(_cloud_filtered);
+        _cluster_ex.setSearchMethod(_kd_tree);
+        _cluster_ex.extract(clusters);
+
+        int largest_cluster = 0;
+        int num_points = 0;
+        for(int k = 0; k < clusters.size(); ++k)
+        {
+            if (clusters[k].indices.size() > num_points) {
+                num_points = clusters[k].indices.size();
+                largest_cluster = k;
+            }
+        }
+        std::swap(inliers->indices,clusters[largest_cluster].indices);
+
         // Extract the inliers
         _extract.setInputCloud (_cloud_filtered);
         _extract.setIndices (inliers);
-        _extract.setNegative (false);
-        _extract.filter (*_cloud_p);
+
+        // Calculate bounding box
+        common::OrientedBoundingBox obb;
+        determine_XY_bounding_box(*coefficients,*_cloud_filtered, inliers->indices, obb);
 
         //add wall to result set
-        common::OrientedBoundingBox obb(_cloud_p);
+        //common::OrientedBoundingBox obb(_cloud_p);
         walls->push_back(SegmentedPlane(coefficients,obb));
 
 #if ENABLE_VISUALIZATION_PLANES==1
+        _extract.setNegative (false);
+        _extract.filter (*_cloud_p);
+
         std::stringstream ss;
         ss << "Plane: " << i;
         common::Color c = _colors.next();
         pcl::visualization::AddPointCloud(_viewer, _cloud_p, ss.str(), c.r, c.g, c.b);
 
-        Eigen::Vector4d centroid;
-        pcl::compute3DCentroid<pcl::PointXYZRGB>(*_cloud_p, centroid);
-        _viewer.addPlane(*coefficients,centroid(0),centroid(1),centroid(2),ss.str());
+//        Eigen::Vector4d centroid;
+//        pcl::compute3DCentroid<pcl::PointXYZRGB>(*_cloud_p, centroid);
+//        _viewer.addPlane(*coefficients,centroid(0),centroid(1),centroid(2),ss.str());
 
-        PointCloudRGB::Ptr cloud_projected = PointCloudRGB::Ptr(new PointCloudRGB);
+//        PointCloudRGB::Ptr cloud_projected = PointCloudRGB::Ptr(new PointCloudRGB);
 
-        _proj.setInputCloud (_cloud_p);
-        _proj.setModelCoefficients (coefficients);
-        _proj.filter (*cloud_projected);
+//        _proj.setInputCloud (_cloud_p);
+//        _proj.setModelCoefficients (coefficients);
+//        _proj.filter (*cloud_projected);
 
-        PointCloudRGB::Ptr cloud_hull = PointCloudRGB::Ptr(new PointCloudRGB);
-        _hull.setInputCloud(cloud_projected);
-        _hull.reconstruct(*cloud_hull);
-        _hull.setDimension(2);
+//        PointCloudRGB::Ptr cloud_hull = PointCloudRGB::Ptr(new PointCloudRGB);
+//        _hull.setInputCloud(cloud_projected);
+//        _hull.reconstruct(*cloud_hull);
+//        _hull.setDimension(2);
 
-        _viewer.addPolygon<pcl::PointXYZRGB>(cloud_hull, c.r, c.g, c.b, ss.str());
+//        _viewer.addPolygon<pcl::PointXYZRGB>(cloud_hull, c.r, c.g, c.b, ss.str());
 
         ss << "_obb";
         _viewer.addCube(obb.get_translation(), obb.get_rotation(), obb.get_width(), obb.get_height(), obb.get_depth(), ss.str());
@@ -206,4 +236,104 @@ int WallExtractor::find_ground_plane(common::vision::SegmentedPlane::ArrayPtr& w
     }
 
     return ground_plane;
+}
+
+inline float project(Eigen::Vector3f& v, Eigen::Vector3f& p)
+{
+    return v.dot(p);
+}
+
+void WallExtractor::determine_XY_bounding_box(const pcl::ModelCoefficients& plane,
+                                              const pcl::PointCloud<pcl::PointXYZRGB>& points,
+                                              const std::vector<int>& indices,
+                                              common::OrientedBoundingBox& obb)
+{
+    Eigen::Vector2f normal_xy(plane.values[0],plane.values[1]);
+    normal_xy.normalize();
+
+    Eigen::Vector3f up(0,0,1);
+    Eigen::Vector3f lateral(normal_xy(0),normal_xy(1),0);
+    Eigen::Vector3f longitudinal(-lateral(1),lateral(0),0);
+
+    Eigen::Vector3f p;
+    Eigen::Vector3f centroid(0,0,0);
+
+    //project points onto normal (y) and orthogonal (x) to determine width and depth
+    float min_long = std::numeric_limits<float>::infinity();
+    float max_long = -std::numeric_limits<float>::infinity();
+    float min_lat = std::numeric_limits<float>::infinity();
+    float max_lat = -std::numeric_limits<float>::infinity();
+    float min_vert = std::numeric_limits<float>::infinity();
+    float max_vert = -std::numeric_limits<float>::infinity();
+
+    for(std::vector<int>::const_iterator it = indices.begin(); it != indices.end(); ++it)
+    {
+        const pcl::PointXYZRGB& p3d = points[*it];
+
+        p(0) = p3d.x;
+        p(1) = p3d.y;
+        p(2) = p3d.z;
+
+        float x = project(longitudinal, p);
+        float y = project(lateral, p);
+        float z = project(up, p);
+
+        if (x < min_long) min_long = x;
+        else if (x > max_long) max_long = x;
+
+        if (y < min_lat) min_lat = y;
+        else if (y > max_lat) max_lat = y;
+
+        if (z < min_vert) min_vert = z;
+        else if (z > max_vert) max_vert = z;
+    }
+
+    //determine width and depth
+    float width = std::abs(max_long - min_long);
+    float depth = std::abs(max_lat - min_lat);
+    float height = std::abs(max_vert - min_vert);
+
+    //determine centroid
+    centroid(0) = (max_long + min_long)/2.0;
+    centroid(1) = (max_lat + min_lat)/2.0;
+    centroid(2) = (max_vert + min_vert)/2.0;
+
+    float x = project(centroid,longitudinal);
+    float y = project(centroid,lateral);
+    float z = project(centroid,up);
+
+    centroid(0) = x;
+    centroid(1) = y;
+    centroid(2) = z;
+
+
+
+
+    Eigen::Quaternionf q;
+    Eigen::Vector3f forward(1,0,0);
+    if (std::abs(centroid(2)) < 0.05 ) {
+        //it's a horizontal plane
+        //TODO: cannot build correct bounding box here
+        centroid(2) = 0;
+        q.setIdentity();
+
+        std::swap(width,depth);
+        height = world::walls::thickness/10.0;
+    }
+    else {
+        //it's a vertical plane
+        centroid(2) = height/2;
+        Eigen::Vector3f normal3d(normal_xy(0),normal_xy(1),0);
+        q.setFromTwoVectors(forward,normal3d);
+//        tf::Quaternion qq(q.x(),q.y(),q.z(),q.w());
+//        tf::Matrix3x3 m(qq);
+//        double roll,pitch,yaw;
+//        m.getRPY(roll,pitch,yaw);
+//        std::cout << "ff";
+
+    }
+
+    //determine rotation
+    //obb = common::OrientedBoundingBox(centroid, q, width,height,depth);
+    obb = common::OrientedBoundingBox(centroid, q, depth,width,height);
 }
