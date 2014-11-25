@@ -30,7 +30,7 @@ void ModelFitting::set_parameter()
     _normal_est.setKSearch(_kd_k());
 }
 
-double ModelFitting::classify(const common::SharedPointCloudRGB &cloud, pcl::ModelCoefficients::Ptr &coefficients)
+common::Classification ModelFitting::classify(const common::SharedPointCloudRGB &cloud, pcl::ModelCoefficients::Ptr &coefficients)
 {
     set_parameter();
 
@@ -48,12 +48,7 @@ double ModelFitting::classify(const common::SharedPointCloudRGB &cloud, pcl::Mod
     double nPoints = (double)cloud->size();
     double nInliers = (double)_inliers.indices.size();
 
-    if (_model == pcl::SACMODEL_CYLINDER)
-    {
-        std::cout << "Inliers: " << nInliers << ", nPoints: " << nPoints << std::endl;
-    }
-
-    return nInliers/nPoints;
+    return common::Classification(name(), nInliers/nPoints);
 }
 
 void ModelFitting::visualize(pcl::visualization::PCLVisualizer &viewer, const pcl::ModelCoefficients& coefficients)

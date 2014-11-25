@@ -147,7 +147,7 @@ int main(int argc, char **argv)
     int num = sizeof(_reference_hues)/sizeof(double);
     for (int i = 0; i < num ; ++i)
     {
-        _classifiers.push_back(ColorClassifier(_reference_hues[i]));
+        _classifiers.push_back(ColorClassifier(ColorNames[i],_reference_hues[i]));
     }
     ///////////////
     while(ros::ok())
@@ -183,16 +183,12 @@ int main(int argc, char **argv)
 //                        green_index=i;
 //                    }
 
-                    std::cout << "Color: " << ColorNames[i] << " has probability: " << probability << std::endl;
+                    std::cout << "Color: " << classifier.name() << " has probability: " << probability << std::endl;
                 }
             }
             if (green_probability > 0.4) {std::cout << "It is " << ColorNames[green_index] << std::endl;}
 
-            else std::cout << "It is " << ColorNames[best_i] << std::endl;
-
-            //            }
-
-            //            /////////////////////////////////////////
+            else std::cout << "It is " << _classifiers[best_i].name() << std::endl;
 
         }
 

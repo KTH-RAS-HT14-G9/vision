@@ -107,6 +107,9 @@ include_directories(
 add_library(shape_classifier_base src/shape_classifier_base.cpp)
 add_library(model_fitting src/model_fitting.cpp)
 add_library(plane_fitting src/plane_fitting.cpp)
+add_library(color_detectorr src/color_detector.cpp)
+add_library(object_confirmation src/object_confirmation.cpp)
+add_library(shape_recognition src/shape_recognition.cpp)
 
 ## Declare a cpp executable
 # add_executable(object_recognition_node src/object_recognition_node.cpp)
@@ -119,10 +122,12 @@ add_executable(object_recognition src/object_recognition.cpp)
 ## Specify libraries to link a library or executable target against
 target_link_libraries(model_fitting ${catkin_LIBRARIES} shape_classifier_base)
 target_link_libraries(plane_fitting ${catkin_LIBRARIES} shape_classifier_base)
+target_link_libraries(shape_recognition ${catkin_LIBRARIES} model_fitting plane_fitting)
 target_link_libraries(object_recognition
   ${catkin_LIBRARIES}
-  model_fitting
-  plane_fitting
+  color_detectorr
+  object_confirmation
+  shape_recognition
   libvtkCommon.so libvtkFiltering.so libvtkRendering.so libvtkGraphics.so
 )
 

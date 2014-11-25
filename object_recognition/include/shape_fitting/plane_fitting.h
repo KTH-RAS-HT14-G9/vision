@@ -4,6 +4,7 @@
 #include <shape_fitting/shape_classifier_base.h>
 #include <common/parameter.h>
 #include <pcl/segmentation/sac_segmentation.h>
+#include "plane_condition.h"
 
 class PlaneFitting : public ShapeClassifierBase
 {
@@ -11,9 +12,9 @@ public:
     PlaneFitting(const std::string& name,
                  int min_planes,
                  const std::string& parameter_prefix,
-                 bool (*condition)(const std::vector<pcl::ModelCoefficients>&, const std::vector<Eigen::Vector4f>&));
+                 PlaneCondition* condition);
 
-    virtual double classify(const common::SharedPointCloudRGB &cloud, pcl::ModelCoefficients::Ptr &coefficients);
+    virtual common::Classification classify(const common::SharedPointCloudRGB &cloud, pcl::ModelCoefficients::Ptr &coefficients);
 
     virtual void visualize(pcl::visualization::PCLVisualizer &viewer, const pcl::ModelCoefficients &coefficients);
 
@@ -25,7 +26,7 @@ protected:
     void set_parameters();
     void build_multiple_plane_model(std::vector<pcl::ModelCoefficients>& planes, pcl::ModelCoefficients::Ptr& coefficients);
 
-    bool (*_condition)(const std::vector<pcl::ModelCoefficients>&, const std::vector<Eigen::Vector4f>&);
+    PlaneCondition* _condition;
 
     int _min_planes;
     pcl::SACSegmentation<pcl::PointXYZRGB> _seg;
