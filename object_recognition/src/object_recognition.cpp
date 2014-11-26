@@ -90,7 +90,7 @@ int main(int argc, char **argv)
     ros::Publisher pub_viz = n.advertise<visualization_msgs::MarkerArray>("visualization_marker_array",10);
 
     ros::Subscriber sub_img = n.subscribe<sensor_msgs::Image>("camera/rgb/image_raw",3,callback_image);
-    ros::Publisher pub_evidence = n.publisher<sensor_msgs::Ras_Evidence>("/evidence",10);
+    ros::Publisher pub_evidence = n.advertise<ras_msgs::RAS_Evidence>("/evidence",10);
 
 #if ENABLE_VISUALIZATION_RECOGNITION==1
     _viewer->addCoordinateSystem (1.0);
@@ -177,7 +177,7 @@ int main(int argc, char **argv)
             pub_espeak.publish(msg);
 
             ras_msgs::RAS_Evidence evidence;
-            evidence.stamp = ros::TIme::now();
+            evidence.stamp = ros::Time::now();
             evidence.group_number = 9;
             evidence.image_evidence = *_img;
             evidence.object_id = classified_object.espeak_text();
