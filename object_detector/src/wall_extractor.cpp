@@ -127,6 +127,13 @@ common::vision::SegmentedPlane::ArrayPtr WallExtractor::extract(const common::Sh
 
         int largest_cluster = 0;
         int num_points = 0;
+
+        if (clusters.size() == 0) {
+            //Found clusters are too small.
+            //Stop here
+            break;
+        }
+
         for(int k = 0; k < clusters.size(); ++k)
         {
             if (clusters[k].indices.size() > num_points) {
