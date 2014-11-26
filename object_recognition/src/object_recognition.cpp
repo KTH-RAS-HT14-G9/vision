@@ -10,6 +10,7 @@
 #include <common/debug.h>
 #include <common/segmented_plane.h>
 #include <common/object_classification.h>
+#include <common/marker_delegate.h>
 
 #if ENABLE_VISUALIZATION_RECOGNITION==1
 #include <pcl/visualization/pcl_visualizer.h>
@@ -19,6 +20,7 @@
 ColorDetector _classifier_color;
 ShapeRecognition _classifier_shape;
 ObjectConfirmation _object_confirmation;
+common::MarkerDelegate _marker_delegate("robot","objects");
 
 std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr > _clouds;
 common::vision::SegmentedPlane::ArrayPtr _planes;
@@ -75,6 +77,7 @@ int main(int argc, char **argv)
     ros::Subscriber sub_rois = n.subscribe<vision_msgs::ROI>("/vision/obstacles/rois",1,callback_rois);
     ros::Subscriber sub_planes = n.subscribe<vision_msgs::Planes>("/vision/obstacles/planes",1,callback_planes);
     ros::Publisher pub_espeak = n.advertise<std_msgs::String>("/espeak/string",1);
+    ros::Publisher pub_viz = n.advertise<visualization_msgs::MarkerArray>("visualization_marker_array",10);
 
 #if ENABLE_VISUALIZATION_RECOGNITION==1
     _viewer->addCoordinateSystem (1.0);
@@ -157,6 +160,10 @@ int main(int argc, char **argv)
             std_msgs::String msg;
             msg.data = classified_object.espeak_text();
             pub_espeak.publish(msg);
+
+
+            _marker_delegate.add(classified_object);
+            pub_viz.publish(_marker_delegate.get());
         }
 
         ROS_INFO("Recognition - Time: %lf",timer.elapsed());
