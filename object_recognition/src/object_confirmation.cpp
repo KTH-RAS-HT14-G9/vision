@@ -3,7 +3,7 @@
 ObjectConfirmation::ObjectConfirmation()
     :_min_ratio("/vision/recognition/confirmation/min_ratio",0.6)
     ,_min_iterations("/vision/recognition/confirmation/min_frames",5)
-    ,_reset_threshold("/vision/recognition/confirmation/reset_threshold",10)
+    ,_reset_threshold("/vision/recognition/confirmation/reset_threshold",5)
     ,_empty_frames(0)
     ,_accumulated_frames(0)
 {
@@ -56,7 +56,7 @@ double ObjectConfirmation::calculate_max_ratio(const std::map<std::string,int> &
 
 void ObjectConfirmation::reset_accumulation()
 {
-	ROS_INFO("-------------- RESET --------------");
+	//ROS_ERROR("-------------- RESET --------------");
 	_accumulated_frames = 0;
     _shape_accumulator.clear();
     _color_accumulator.clear();
@@ -67,6 +67,7 @@ bool ObjectConfirmation::update(const common::ObjectClassification& classificati
 {
     //if shape is undefined and the color is not plurple
     if (classification.shape().is_undefined() && classification.color().name().compare("plurple") != 0) {
+//	ROS_ERROR("Shape: %s, Color: %s",classification.shape().name().c_str(), classification.color().name().c_str());
         _empty_frames++;
 
         if (_empty_frames >= _reset_threshold()) {
@@ -77,19 +78,22 @@ bool ObjectConfirmation::update(const common::ObjectClassification& classificati
         return false;
     }
 
+    _empty_frames = 0;
     _accumulated_frames++;
 
     if (!classification.shape().is_undefined()) {
         increment(_shape_accumulator,classification.shape());
         update_shape_attribute(classification);
     }
-    if (!classification.color().is_undefined())
+    if (!classification.color().is_undefined()) {
         increment(_color_accumulator,classification.color());
+    }
 
 
     //--------------------------------------------------------------------------
     // Evaluation
 
+    //ROS_ERROR("Accumulated frames: %d", _accumulated_frames);
     if (_accumulated_frames > _min_iterations())
     {
         std::string name_shape;

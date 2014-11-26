@@ -12,6 +12,9 @@
 #include <common/object_classification.h>
 #include <common/marker_delegate.h>
 
+#include <ras_msgs/RAS_Evidence.h>
+#include <sensor_msgs/Image.h>
+
 #if ENABLE_VISUALIZATION_RECOGNITION==1
 #include <pcl/visualization/pcl_visualizer.h>
 #include <common/visualization_addons.h>
@@ -26,6 +29,8 @@ std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr > _clouds;
 common::vision::SegmentedPlane::ArrayPtr _planes;
 common::vision::SegmentedPlane* _ground_plane = NULL;
 
+sensor_msgs::Image::ConstPtr _img;
+
 std::vector<common::ObjectClassification > _classifications;
 
 int _num_rois = 0;
@@ -34,6 +39,11 @@ int _num_rois = 0;
 boost::shared_ptr<pcl::visualization::PCLVisualizer> _viewer(new pcl::visualization::PCLVisualizer("Recognition"));
 common::Colors _colors;
 #endif
+
+void callback_image(const sensor_msgs::Image::ConstPtr& msg)
+{
+    _img=msg;
+}
 
 void callback_rois(const vision_msgs::ROIConstPtr& rois)
 {
@@ -74,10 +84,13 @@ int main(int argc, char **argv)
 
     ros::NodeHandle n;
 
-    ros::Subscriber sub_rois = n.subscribe<vision_msgs::ROI>("/vision/obstacles/rois",1,callback_rois);
-    ros::Subscriber sub_planes = n.subscribe<vision_msgs::Planes>("/vision/obstacles/planes",1,callback_planes);
+    ros::Subscriber sub_rois = n.subscribe<vision_msgs::ROI>("/vision/obstacles/rois",3,callback_rois);
+    ros::Subscriber sub_planes = n.subscribe<vision_msgs::Planes>("/vision/obstacles/planes",3,callback_planes);
     ros::Publisher pub_espeak = n.advertise<std_msgs::String>("/espeak/string",1);
     ros::Publisher pub_viz = n.advertise<visualization_msgs::MarkerArray>("visualization_marker_array",10);
+
+    ros::Subscriber sub_img = n.subscribe<sensor_msgs::Image>("camera/rgb/image_raw",3,callback_image);
+    ros::Publisher pub_evidence = n.advertise<ras_msgs::RAS_Evidence>("/evidence",10);
 
 #if ENABLE_VISUALIZATION_RECOGNITION==1
     _viewer->addCoordinateSystem (1.0);
@@ -156,12 +169,23 @@ int main(int argc, char **argv)
         common::ObjectClassification classified_object;
         if(_object_confirmation.update(strongest_classification,classified_object))
         {
+            //------------------------------------------------------------------------------
+            // Publish evidence
             ROS_ERROR("Publishing %s to espeak.", classified_object.espeak_text().c_str());
             std_msgs::String msg;
             msg.data = classified_object.espeak_text();
             pub_espeak.publish(msg);
 
+            ras_msgs::RAS_Evidence evidence;
+            evidence.stamp = ros::Time::now();
+            evidence.group_number = 9;
+            evidence.image_evidence = *_img;
+            evidence.object_id = classified_object.espeak_text();
+            pub_evidence.publish(evidence);
 
+
+            //------------------------------------------------------------------------------
+            // Publish marker
             _marker_delegate.add(classified_object);
             pub_viz.publish(_marker_delegate.get());
         }
