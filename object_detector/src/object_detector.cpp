@@ -162,9 +162,11 @@ int main(int argc, char **argv)
             pub_planes.publish(planesmsg);
 
 
-            _marker_delegate.add(planesmsg);
-            pub_viz.publish(_marker_delegate.get());
-            _marker_delegate.clear();
+            if (_calibrated) {
+                _marker_delegate.add(planesmsg);
+                pub_viz.publish(_marker_delegate.get());
+                _marker_delegate.clear();
+            }
 
         }
 
