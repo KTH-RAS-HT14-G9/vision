@@ -118,7 +118,7 @@ bool ObjectConfirmation::update(const common::ObjectClassification& classificati
         {
             confirmed_object = common::ObjectClassification(
                         common::Classification("cylinder",1), //if green_light then cylinder
-                        common::Classification("green",1));
+                        common::Classification("green",1)); // when color is green_light, change name to green
             reset_accumulation();
             return true;
         }
