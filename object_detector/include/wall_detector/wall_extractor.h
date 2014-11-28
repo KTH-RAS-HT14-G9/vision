@@ -14,7 +14,7 @@
 #include <pcl/sample_consensus/model_types.h>
 #include <pcl/segmentation/sac_segmentation.h>
 #include <pcl/filters/frustum_culling.h>
-#include <pcl/filters/statistical_outlier_removal.h>
+#include <pcl/segmentation/extract_clusters.h>
 #include <pcl/search/kdtree.h>
 
 #include <Eigen/Core>
@@ -56,11 +56,15 @@ public:
 protected:
 
     int find_ground_plane(common::vision::SegmentedPlane::ArrayPtr& walls);
+    void determine_XY_bounding_box(const pcl::ModelCoefficients& plane,
+                                   const pcl::PointCloud<pcl::PointXYZRGB>& points,
+                                   const std::vector<int>& indices,
+                                   common::OrientedBoundingBox& obb);
 
-    //pcl::UniformSampling<pcl::PointXYZRGB> _downsampler;
     pcl::SACSegmentation<pcl::PointXYZRGB> _seg;
     common::PointCloudRGB::Ptr _cloud_filtered, _cloud_p, _cloud_f;
     pcl::ExtractIndices<pcl::PointXYZRGB> _extract;
+    pcl::EuclideanClusterExtraction<pcl::PointXYZRGB> _cluster_ex;
     pcl::search::Search<pcl::PointXYZRGB>::Ptr _kd_tree;
 
     Eigen::Vector3f _down;
