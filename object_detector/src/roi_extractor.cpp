@@ -154,8 +154,13 @@ common::vision::ROIArrayPtr ROIExtractor::extract(
             }
         }
 
-        //add to result set
-        if (enclosed)
+        //add to result set if cluster is close enough to do some reasonable
+        //classification
+        Eigen::Vector4f centroid;
+        pcl::compute3DCentroid(*cloud_t,indices,centroid);
+        double dist = centroid.head<2>().norm();
+        //ROS_ERROR("Distance to ROI: %.3lf",dist);
+        if (enclosed && dist < 0.4)
         {
             common::PointCloudRGB::Ptr cluster_cloud(new common::PointCloudRGB);
 
