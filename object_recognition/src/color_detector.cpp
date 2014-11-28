@@ -53,7 +53,6 @@ common::Classification ColorDetector::classify(const common::PointCloudRGB::Ptr 
     // Convert
     _hues.clear();
 
-    ////for points in one pointcloud
     int numpoints = roi->size();
 
     if(numpoints==0) return common::Classification();
@@ -70,7 +69,7 @@ common::Classification ColorDetector::classify(const common::PointCloudRGB::Ptr 
     // Classify
 
     double max_probability = 0;
-    int best_i = 0;
+    int best_i = -1;
     double green_probability =0;
     int green_index=0;
     for (int i = 0; i < _classifiers.size(); ++i)

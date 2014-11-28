@@ -80,10 +80,7 @@ void ColorClassifier::build_histogram(double hue)
 {
     counters(hue);
 
-    // _histogram[round(hue)]=_histogram[round(hue)] + weight_color(hue);
-    // for each hue, spread numbers around its -2----2 neighbours
-    //static const double gauss_mask[5]={0.1,0.2,0.4,0.2,0.1};
-    static const double gauss_mask[5]={0,0,1,0,0};
+    static const double mask[5]={0,0,1,0,0};
     for (int i=-2;i<3;++i)
     {
         int idx = (round(hue)+i);
@@ -97,14 +94,12 @@ void ColorClassifier::build_histogram(double hue)
             idx = idx%NBINS;
         }
         if (idx < 0 || idx > _histogram.size())
-            ROS_ERROR("Index out of bounds. Fix this: %d",idx);
+            //ROS_ERROR("Index out of bounds. Fix this: %d",idx);
 
-        _histogram[idx]=_histogram[idx]+gauss_mask[i+2]* weight_color(hue);
-        //std::cout << _reference_hue << "\t" << hue << "\t" << weight_color(hue)<<"\n";
+        _histogram[idx]=_histogram[idx]+mask[i+2]* weight_color(hue);
     }
 }
 
-// function to weight the probabilities based on the amount of points of a given color given the total number of points. defined by 2 lines 0-0.5 and 0.5-1
 double ColorClassifier::weight_refsize(int total_size)
 {
     std::cout << "total_size: " << total_size << std::endl;
@@ -126,15 +121,11 @@ double ColorClassifier::classify(const std::vector<double> &hues)
 
     for ( int i=0; i < NBINS;++i) _histogram[i]=0;
 
-    // add hue values to the histogram with weight;
-    //std::cout<< hues.size()<<std::endl;
-
     for (int i=0;i< hues.size();i++ )
     {
         build_histogram(hues[i]);
     }
 
-    // find the peak vaĺue around the reference hue
     int max=0;
     int neighbour=7;
     for ( int i=(-(neighbour-1)/2); i<(neighbour-(neighbour-1)/2);i++)
@@ -150,26 +141,18 @@ double ColorClassifier::classify(const std::vector<double> &hues)
         sum=sum+_histogram[i];
     }
 
-    probability=(double)max/sum;
-    // since we only give weights to the area close to the reference hue, meaning sometimes the histogram only have 0;
     if (sum==0) probability=0;
-    //std::cout<< _reference_hue << "\t" <<sum <<std::endl;
 
-    //std::cout << _count_ref_hue << "\t" << _count_orange << "\t" << hues.size() << std::endl;
+    probability=(double)max/sum;
 
     probability=probability*_count_ref_hue/hues.size();
-
-    /////////////
 
     double prob=0;
     if(_count_orange>10) prob=(double)_count_ref_hue/((double)_count_ref_hue+(double)_count_orange);
     else prob=(double)_count_ref_hue/(double) hues.size();
 
-    std::cout << "weight: " << weight_refsize(hues.size()) << std::endl;
     prob=prob*weight_refsize(hues.size());
-    //std::cout << probability << "\t" << prob << std::endl;
 
-    /////////////
 
     _count_ref_hue=0;
     _count_orange=0;

@@ -67,6 +67,8 @@ bool ObjectConfirmation::update(const common::ObjectClassification& classificati
 {
     //if shape is undefined and the color is not plurple
     if (classification.shape().is_undefined() && classification.color().name().compare("plurple") != 0) {
+        //should we add orange and light_green as well
+
 //	ROS_ERROR("Shape: %s, Color: %s",classification.shape().name().c_str(), classification.color().name().c_str());
         _empty_frames++;
 
@@ -103,9 +105,37 @@ bool ObjectConfirmation::update(const common::ObjectClassification& classificati
         double ratio_color = calculate_max_ratio(_color_accumulator,name_color);
 
         if (ratio_color > _min_ratio() && name_color.compare("plurple") == 0)
+            // consistently detected purple
         {
             confirmed_object = common::ObjectClassification(
-                        common::Classification(),
+                        common::Classification("cross",1), //if purple then purple cross
+                        common::Classification(name_color,1));
+            reset_accumulation();
+            return true;
+        }
+        if (ratio_color > _min_ratio() && name_color.compare("green_light") == 0)
+            // added with same logic as purple - maybe unecessary because it usualy finds correct shape and color
+        {
+            confirmed_object = common::ObjectClassification(
+                        common::Classification("cylinder",1), //if green_light then cylinder
+                        common::Classification("green",1));
+            reset_accumulation();
+            return true;
+        }
+        if (ratio_color > _min_ratio() && name_color.compare("orange") == 0)
+            // added with samwe logic as purple
+        {
+            confirmed_object = common::ObjectClassification(
+                        common::Classification("patric",1), //if orange then patric
+                        common::Classification(name_color,1));
+            reset_accumulation();
+            return true;
+        }
+        if (ratio_shape > _min_ratio() && name_shape.compare("cylinder") == 0 && ratio_color > _min_ratio() && name_color.compare("blue") == 0)
+            // same logic as above but to detect the blue triangle
+        {
+            confirmed_object = common::ObjectClassification(
+                        common::Classification("triangle",1), //if blue and cylinder then blue triangle
                         common::Classification(name_color,1));
             reset_accumulation();
             return true;
@@ -114,6 +144,10 @@ bool ObjectConfirmation::update(const common::ObjectClassification& classificati
         common::Classification color,shape;
         if (ratio_color > _min_ratio())
         {
+            if (name_color.compare("green_light")==0)
+                // when color is green_light, change name to green
+                name_color="green";
+
             color = common::Classification(name_color,1);
         }
         if (ratio_shape > _min_ratio())

@@ -130,6 +130,21 @@ int main(int argc, char **argv)
             ss << "Cloud_" << i;
             common::Color c = _colors.next();
             pcl::visualization::AddPointCloud(*_viewer,_clouds[i],ss.str(),c.r,c.g,c.b);
+
+            pcl::search::KdTree<pcl::PointXYZRGB>::Ptr kd_tree(new pcl::search::KdTree<pcl::PointXYZRGB>);
+            pcl::NormalEstimation<pcl::PointXYZRGB, pcl::Normal> normal_est;
+            pcl::PointCloud<pcl::Normal>::Ptr normals(new pcl::PointCloud<pcl::Normal>);
+            normal_est.setSearchMethod(kd_tree);
+            double kd_k;
+            ros::param::get("/vision/recognition/cylinder/kd_k",kd_k);
+            normal_est.setKSearch(kd_k);
+
+
+            normal_est.setInputCloud(_clouds[i]);
+            normal_est.compute(*normals);
+
+            _viewer->addPointCloudNormals(_clouds[i],normals);
+
 #endif
 
             //determine shape
