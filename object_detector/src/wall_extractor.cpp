@@ -117,7 +117,7 @@ common::vision::SegmentedPlane::ArrayPtr WallExtractor::extract(const common::Sh
             break;
         }
 
-        //Take only biggest cluster of inliers to determine the bounding box
+/*        //Take only biggest cluster of inliers to determine the bounding box
         std::vector<pcl::PointIndices> clusters;
         _kd_tree->setInputCloud(_cloud_filtered);
         _cluster_ex.setIndices(inliers);
@@ -134,6 +134,7 @@ common::vision::SegmentedPlane::ArrayPtr WallExtractor::extract(const common::Sh
             break;
         }
 
+
         for(int k = 0; k < clusters.size(); ++k)
         {
             if (clusters[k].indices.size() > num_points) {
@@ -142,7 +143,7 @@ common::vision::SegmentedPlane::ArrayPtr WallExtractor::extract(const common::Sh
             }
         }
         std::swap(inliers->indices,clusters[largest_cluster].indices);
-
+*/
         // Extract the inliers
         _extract.setInputCloud (_cloud_filtered);
         _extract.setIndices (inliers);
