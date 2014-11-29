@@ -51,22 +51,8 @@ public:
         _indexbufA->indices.clear();
         _indexbufA->indices.reserve(cloud_in->size());
 
-//        _indexbufB->indices.clear();
-//        _indexbufB->indices.reserve(cloud_in->size());
-
-//        _cloud_buf->clear();
-
-        common::Timer timer;
-        timer.start();
-
         _frustum.setInputCloud(cloud_in);
         _frustum.filter(_indexbufA->indices);
-//        _indexbufA->indices.resize(cloud_in->size());
-//        for(int i = 0; i < cloud_in->size(); ++i)
-//            _indexbufA->indices[i] = i;
-
-        double t_frustum = timer.elapsed();
-        timer.start();
 
         if (_fast_downsample) {
             PreFilter::fast_downsampling(cloud_in, _indexbufA, cloud_out, _downsample_to_npoints);
@@ -79,17 +65,6 @@ public:
             _downsampler.filter(*cloud_out);
         }
 
-        double t_downsample = timer.elapsed();
-        timer.start();
-
-//        _sor.setInputCloud(_cloud_buf);
-//        _sor.filter(*cloud_out);
-
-        double t_sor = timer.elapsed();
-
-#if ENABLE_TIME_PROFILING == 1
-        std::cout << "Frustum: " << t_frustum << " | Downsampler: " << t_downsample << " | SOR: " << t_sor << std::endl;
-#endif
     }
 
     static void fast_downsampling(const common::SharedPointCloudRGB& cloud_in,
@@ -143,7 +118,6 @@ void PreFilter::fast_downsampling(const common::SharedPointCloudRGB &cloud_in,
     }
 
     pcl::copyPointCloud(*cloud_in,indices->indices,*cloud_out);
-
 }
 
 
