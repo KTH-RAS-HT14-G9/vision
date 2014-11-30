@@ -24,6 +24,9 @@ protected:
     double weight_color(double hue);
     void build_histogram(double hue);
     void counters(double hue);
+
+    double weight_refsize(int total_size);
+
 };
 
 ColorClassifier::ColorClassifier(const std::string& name, double reference_hue)
@@ -93,13 +96,28 @@ void ColorClassifier::build_histogram(double hue)
         {
             idx = idx%NBINS;
         }
+        if (idx < 0 || idx > _histogram.size())
+            ROS_ERROR("Index out of bounds. Fix this: %d",idx);
+
         _histogram[idx]=_histogram[idx]+gauss_mask[i+2]* weight_color(hue);
         //std::cout << _reference_hue << "\t" << hue << "\t" << weight_color(hue)<<"\n";
     }
 }
 
+// function to weight the probabilities based on the amount of points of a given color given the total number of points. defined by 2 lines 0-0.5 and 0.5-1
+double ColorClassifier::weight_refsize(int total_size)
+{
+    std::cout << "total_size: " << total_size << std::endl;
 
+    double percent=(double)_count_ref_hue/(double)total_size;
 
+    if (total_size == 0) return 0;
+    else
+    {
+        if (percent >= 0.5) return 0.5*percent + 0.5; // y=x/2+1/2
+        else return percent; //y=x
+    }
+}
 
 double ColorClassifier::classify(const std::vector<double> &hues)
 {
@@ -121,11 +139,13 @@ double ColorClassifier::classify(const std::vector<double> &hues)
     int neighbour=7;
     for ( int i=(-(neighbour-1)/2); i<(neighbour-(neighbour-1)/2);i++)
     {
-        if (_histogram[_reference_hue+i] > max) max=_histogram[_reference_hue+i];
+        int k = ((int)_reference_hue + i) % NBINS;
+
+        if (_histogram[k] > max) max = _histogram[k];
     }
 
     double sum=0;
-    for (int i=0;i<NBINS;++i)
+    for (int i=0;i < NBINS;++i)
     {
         sum=sum+_histogram[i];
     }
@@ -143,9 +163,11 @@ double ColorClassifier::classify(const std::vector<double> &hues)
 
     double prob=0;
     if(_count_orange>10) prob=(double)_count_ref_hue/((double)_count_ref_hue+(double)_count_orange);
-    else prob=prob=(double)_count_ref_hue/(double) hues.size();
+    else prob=(double)_count_ref_hue/(double) hues.size();
 
-    std::cout << probability << "\t" << prob << std::endl;
+    std::cout << "weight: " << weight_refsize(hues.size()) << std::endl;
+    prob=prob*weight_refsize(hues.size());
+    //std::cout << probability << "\t" << prob << std::endl;
 
     /////////////
 

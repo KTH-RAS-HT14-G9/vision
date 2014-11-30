@@ -7,6 +7,7 @@ ObjectConfirmation::ObjectConfirmation()
     ,_empty_frames(0)
     ,_accumulated_frames(0)
 {
+    set_special_cases_map();
 }
 
 void ObjectConfirmation::increment(std::map<std::string,int> &map, const common::Classification &name)
@@ -62,11 +63,85 @@ void ObjectConfirmation::reset_accumulation()
     _color_accumulator.clear();
 }
 
+
+void ObjectConfirmation::set_special_cases_map()
+//Initialize the special cases map
+{
+    int nCases = 6; //remember!!
+
+    std::string special_colors[] = {"purple",  "orange",   "blue",     "blue",     "green_light",  "*"      };
+    std::string special_shapes[] = {"*",       "undefined","undefined","Cylinder", "*",            "Sphere"};
+
+    std::string real_colors[]    = {"purple",  "",         "blue",     "blue",     "green",        "*"      };
+    std::string real_shapes[]    = {"Cross",   "Patrick",  "Triangle", "Triangle", "*",            "Ball"  };
+
+    for(int i=0;i < nCases;++i)
+    {
+        Case special_pair = std::make_pair(special_colors[i], special_shapes[i]);
+        Case real_pair = std::make_pair(real_colors[i], real_shapes[i]);
+
+        _special_case_map.insert(std::make_pair(special_pair,real_pair));
+
+        std::cout << "case: " << special_pair.first << " "<< special_pair.second <<" with "<<real_pair.first << " "<<real_pair.second<<std::endl;
+    }
+
+}
+
+ObjectConfirmation::Case ObjectConfirmation::correct_classification(const std::string& name_color, const std::string& name_shape)
+{
+    Case pair = std::make_pair(name_color,name_shape);
+
+    if(name_shape.compare("Sphere") == 0)
+    {
+        pair.first = "*";
+    }
+    if(name_color.compare("green_light")==0 || name_color.compare("purple")==0)
+    {
+        pair.second  = "*";
+    }
+
+    std::map<Case,Case>::const_iterator iterator = _special_case_map.find(pair);
+
+    ROS_ERROR("Current: %s %s", name_color.c_str(), name_shape.c_str());
+
+    if (iterator!=_special_case_map.end())
+    // If the detected color and shape form a special case, assign real case
+    {
+
+        std::string map_color = iterator->second.first;
+        std::string map_shape = iterator->second.second;
+
+        if (map_color.compare("*") == 0) map_color = name_color;
+
+        if (map_shape.compare("*") == 0) map_shape = name_shape;
+
+        std::cout << "special case detected" << std::endl;
+        std::cout << "replacing " << name_color << " " << name_shape << " with " << map_color <<" " << map_shape << std::endl;
+
+        ROS_ERROR("Fixed: %s %s", map_color.c_str(), map_shape.c_str());
+
+        return std::make_pair(map_color, map_shape);
+
+    }
+
+    return std::make_pair(name_color, name_shape);
+}
+
+bool isUndefined(const std::string& str) {
+    return common::Classification(str,0).is_undefined();
+}
+
 bool ObjectConfirmation::update(const common::ObjectClassification& classification,
                                 common::ObjectClassification &confirmed_object)
 {
-    //if shape is undefined and the color is not plurple
-    if (classification.shape().is_undefined() && classification.color().name().compare("plurple") != 0) {
+
+    Case corrected = correct_classification(classification.color().name(), classification.shape().name());
+    common::Classification shape_class(corrected.second, classification.shape().probability());
+    common::Classification color_class(corrected.first, classification.color().probability());
+
+    //if shape is undefined
+    if (shape_class.is_undefined()) {
+
 //	ROS_ERROR("Shape: %s, Color: %s",classification.shape().name().c_str(), classification.color().name().c_str());
         _empty_frames++;
 
@@ -81,12 +156,12 @@ bool ObjectConfirmation::update(const common::ObjectClassification& classificati
     _empty_frames = 0;
     _accumulated_frames++;
 
-    if (!classification.shape().is_undefined()) {
-        increment(_shape_accumulator,classification.shape());
-        update_shape_attribute(classification);
+    if (!shape_class.is_undefined()) {
+        increment(_shape_accumulator,shape_class);
+        update_shape_attribute(common::ObjectClassification(shape_class, color_class));
     }
-    if (!classification.color().is_undefined()) {
-        increment(_color_accumulator,classification.color());
+    if (!color_class.is_undefined()) {
+        increment(_color_accumulator,color_class);
     }
 
 
@@ -101,15 +176,6 @@ bool ObjectConfirmation::update(const common::ObjectClassification& classificati
 
         double ratio_shape = calculate_max_ratio(_shape_accumulator,name_shape);
         double ratio_color = calculate_max_ratio(_color_accumulator,name_color);
-
-        if (ratio_color > _min_ratio() && name_color.compare("plurple") == 0)
-        {
-            confirmed_object = common::ObjectClassification(
-                        common::Classification(),
-                        common::Classification(name_color,1));
-            reset_accumulation();
-            return true;
-        }
 
         common::Classification color,shape;
         if (ratio_color > _min_ratio())

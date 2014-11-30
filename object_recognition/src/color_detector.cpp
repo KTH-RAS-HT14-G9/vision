@@ -40,7 +40,7 @@ double ColorDetector::extractHue(int rgb)
 
     if      (max == r) h = 60.f * (      static_cast <float> (g - b) / diff);
     else if (max == g) h = 60.f * (2.f + static_cast <float> (b - r) / diff);
-    else                  h = 60.f * (4.f + static_cast <float> (r - g) / diff); // max == b
+    else               h = 60.f * (4.f + static_cast <float> (r - g) / diff); // max == b
 
     if (h < 0.f) h += 360.f;
 
@@ -53,7 +53,6 @@ common::Classification ColorDetector::classify(const common::PointCloudRGB::Ptr 
     // Convert
     _hues.clear();
 
-    ////for points in one pointcloud
     int numpoints = roi->size();
 
     if(numpoints==0) return common::Classification();
@@ -70,14 +69,14 @@ common::Classification ColorDetector::classify(const common::PointCloudRGB::Ptr 
     // Classify
 
     double max_probability = 0;
-    int best_i = 0;
+    int best_i = -1;
     double green_probability =0;
     int green_index=0;
     for (int i = 0; i < _classifiers.size(); ++i)
     {
         ColorClassifier& classifier = _classifiers[i];
         double probability = classifier.classify(_hues);
-
+        std::cout << probability << std::endl;
         if (probability > max_probability)
         {
             max_probability = probability;
@@ -94,9 +93,17 @@ common::Classification ColorDetector::classify(const common::PointCloudRGB::Ptr 
         max_probability = green_probability;
     }
 
-    std::cout << "It is " << _classifiers[best_i].name() << std::endl;
+    if (best_i==-1)
+    {
+        std::cout << "It is uncolored" << " with probability " << max_probability<< std::endl;
+        _classifiers.push_back(ColorClassifier("uncolored",1.0));
 
-    return common::Classification(_classifiers[best_i].name(), max_probability);
-
+        return common::Classification(_classifiers[best_i].name(), 1.0);
+    }
+    else
+    {
+        std::cout << "It is " << _classifiers[best_i].name()<< " with probability " << max_probability << std::endl;
+        return common::Classification(_classifiers[best_i].name(), max_probability);
+    }
 }
 
