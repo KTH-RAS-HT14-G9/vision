@@ -42,7 +42,7 @@ Parameter<double> _leaf_size("/vision/filter/down_sampling/leaf_size", 0.003); /
 Parameter<double> _distance_threshold("/vision/walls/dist_thresh", 0.01);
 Parameter<double> _halt_condition("/vision/walls/halt_condition", 0.2);
 Parameter<double> _samples_max_dist("/vision/walls/samples_max_dist", 0.2);
-Parameter<int> _down_sample_target_n("/vision/walls/down_sampling/target_n",5000);
+Parameter<int> _down_sample_target_n("/vision/walls/down_sampling/target_n",1500);
 
 Parameter<int>    _outlier_meanK("/vision/walls/outliers/meanK", 50);
 Parameter<double> _outlier_thresh("/vision/walls/outliers/thresh", 0.5);
@@ -86,7 +86,6 @@ int main(int argc, char **argv)
 
     _filtered = common::PointCloudRGB::Ptr(new common::PointCloudRGB);
     _transformed = common::PointCloudRGB::Ptr(new common::PointCloudRGB);
-    common::Timer timer;
 
     vision_msgs::ROIPtr roimsg = vision_msgs::ROIPtr(new vision_msgs::ROI);
     vision_msgs::PlanesPtr planesmsg = vision_msgs::PlanesPtr(new vision_msgs::Planes);
@@ -96,40 +95,37 @@ int main(int argc, char **argv)
 
         if (_pcloud != NULL && !_pcloud->empty())
         {
-            timer.start();
-
-            _filtered->clear();
-            _pre_filter.set_frustum_culling(_frustum_near(), _frustum_far(), _frustum_horz_fov(), _frustum_vert_fov());
-            _pre_filter.set_outlier_removal(_outlier_meanK(), _outlier_thresh());
-            _pre_filter.set_voxel_leaf_size(_leaf_size(),_leaf_size(),_leaf_size());
-            _pre_filter.filter(_pcloud,_filtered);
-
-            double t_prefilter = timer.elapsed();
+            double t_prefilter = MEASURE_TIME(
+                _filtered->clear();
+                _pre_filter.set_frustum_culling(_frustum_near(), _frustum_far(), _frustum_horz_fov(), _frustum_vert_fov());
+                _pre_filter.set_outlier_removal(_outlier_meanK(), _outlier_thresh());
+                _pre_filter.set_voxel_leaf_size(_leaf_size(),_leaf_size(),_leaf_size());
+                _pre_filter.filter(_pcloud,_filtered);
+            );
 
 
-            double t_transform = 0;
-            if (_calibrated) {
-                timer.start();
-                _transformed->clear();
-                _pcl_transform.transform(_filtered, _transformed);
-                t_transform = timer.elapsed();
+            double t_transform = MEASURE_TIME(
+                if (_calibrated) {
+                    _transformed->clear();
+                    _pcl_transform.transform(_filtered, _transformed);
 
-//                tf::Vector3 origin(_origin_x(),_origin_y(),_origin_z());
-//                tf::Vector3 rot(_rot_x(), _rot_y(), _rot_z());
-//                _pcl_transform.transform(_filtered, _transformed,basis,origin,rot);
-            }
-            else {
-                std::swap(*_filtered,*_transformed);
-            }
+    //                tf::Vector3 origin(_origin_x(),_origin_y(),_origin_z());
+    //                tf::Vector3 rot(_rot_x(), _rot_y(), _rot_z());
+    //                _pcl_transform.transform(_filtered, _transformed,basis,origin,rot);
+                }
+                else {
+                    std::swap(*_filtered,*_transformed);
+                }
+            );
 
-            timer.start();
 
-            _roi_extractor.set_cluster_constraints(_cluster_tolerance(), _cluster_min(), _cluster_max());
+            common::vision::SegmentedPlane::ArrayPtr walls;
+            double t_walls = MEASURE_TIME(
+                _roi_extractor.set_cluster_constraints(_cluster_tolerance(), _cluster_min(), _cluster_max());
 
-            leaf_size.setConstant(_leaf_size());
-            common::vision::SegmentedPlane::ArrayPtr walls = _wall_extractor.extract(_transformed,_distance_threshold(),_halt_condition(),_down_sample_target_n(),_samples_max_dist());
-
-            double t_walls = timer.elapsed();
+                leaf_size.setConstant(_leaf_size());
+                walls = _wall_extractor.extract(_transformed,_distance_threshold(),_halt_condition(),_down_sample_target_n(),_samples_max_dist());
+            );
 
             //calibrate
             if (_calibrated == false && walls->size() > 0 && walls->at(0).is_ground_plane()) {
@@ -139,10 +135,10 @@ int main(int argc, char **argv)
                     _wall_extractor.set_down_vector(Eigen::Vector3f(0,0,-1));
             }
 
-            timer.start();
-
-            common::vision::ROIArrayPtr rois = _roi_extractor.extract(walls,_transformed,_wall_thickness(),_max_object_height());
-            double t_rois = timer.elapsed();
+            common::vision::ROIArrayPtr rois;
+            double t_rois = MEASURE_TIME(
+            rois = _roi_extractor.extract(walls,_transformed,_wall_thickness(),_max_object_height());
+            );
 
             //TODO: ------------------------------------------------------------
             //find closest object and publish distance to closest point

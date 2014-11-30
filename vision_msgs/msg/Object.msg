@@ -1,0 +1,17 @@
+float32 x
+float32 y
+
+int32 TYPE_UNKNOWN = -1
+int32 TYPE_RED_CUBE = 0
+int32 TYPE_BLUE_CUBE = 1
+int32 TYPE_GREEN_CUBE = 2
+int32 TYPE_YELLOW_CUBE = 3
+int32 TYPE_RED_BALL = 4
+int32 TYPE_GREEN_CYLINDER = 5
+int32 TYPE_BLUE_TRIANGLE = 6
+int32 TYPE_PURPLE_CROSS = 7
+int32 TYPE_PATRIC = 8
+
+int32 type
+
+bool confirmed
