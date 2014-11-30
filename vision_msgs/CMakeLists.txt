@@ -49,6 +49,7 @@ add_message_files(
   Plane.msg
   Planes.msg
   ROI.msg
+  Object.msg
 )
 
 ## Generate services in the 'srv' folder
