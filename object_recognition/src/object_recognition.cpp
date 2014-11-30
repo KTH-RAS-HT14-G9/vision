@@ -143,7 +143,12 @@ int main(int argc, char **argv)
             normal_est.setInputCloud(_clouds[i]);
             normal_est.compute(*normals);
 
-            _viewer->addPointCloudNormals(_clouds[i],normals);
+            _viewer->addPointCloudNormals<pcl::PointXYZRGB,pcl::Normal>(_clouds[i],normals,5);
+
+
+            //_classifiers[ci_max]->visualize(*_viewer,*_best_coeffs);
+
+            _viewer->spinOnce(30,true);
 
 #endif
 
@@ -160,22 +165,40 @@ int main(int argc, char **argv)
         //----------------------------------------------------------------------
         // Determine strongest ROI classification
 
+        double max_color_prob = 0;
+        int max_color_i = -1;
+        for (int i = 0; i < _classifications.size(); ++i)
+        {
+            if (_classifications[i].color().probability() > max_color_prob)
+            {
+                max_color_prob = _classifications[i].color().probability();
+                max_color_i = i;
+            }
+        }
+
+
         double max_shape_prob = 0;
-        int max_i = -1;
+        int max_shape_i = -1;
         for (int i = 0; i < _classifications.size(); ++i)
         {
             if (_classifications[i].shape().probability() > max_shape_prob)
             {
                 max_shape_prob = _classifications[i].shape().probability();
-                max_i = i;
+                max_shape_i = i;
             }
         }
 
 
-        common::ObjectClassification strongest_classification;
-        if (max_i >= 0) {
-            strongest_classification = _classifications[max_i];
+        common::Classification strongest_shape;
+        common::Classification strongest_color;
+        if (max_shape_i >= 0) {
+            strongest_shape = _classifications[max_shape_i].shape();
         }
+        if (max_color_i >= 0) {
+            strongest_color = _classifications[max_color_i].color();
+        }
+
+        common::ObjectClassification strongest_classification(strongest_shape,strongest_color);
 
 
         //------------------------------------------------------------------------------
@@ -189,7 +212,7 @@ int main(int argc, char **argv)
             ROS_ERROR("Publishing %s to espeak.", classified_object.espeak_text().c_str());
             std_msgs::String msg;
             msg.data = classified_object.espeak_text();
-            pub_espeak.publish(msg);
+            //pub_espeak.publish(msg);
 
             ras_msgs::RAS_Evidence evidence;
             evidence.stamp = ros::Time::now();

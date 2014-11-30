@@ -153,6 +153,7 @@ double ColorClassifier::classify(const std::vector<double> &hues)
 
     prob=prob*weight_refsize(hues.size());
 
+    std::cout << _count_ref_hue << " "<<_count_orange << " " << hues.size()<< " " << weight_refsize(hues.size()) << std::endl;
 
     _count_ref_hue=0;
     _count_orange=0;

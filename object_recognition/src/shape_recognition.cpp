@@ -146,13 +146,7 @@ common::Classification ShapeRecognition::classify(const common::PointCloudRGB::P
                                                   centroid,
                                                   obb);
 
-#if ENABLE_VISUALIZATION_RECOGNITION == 1
-        //----------------------------------------------------------------------
-        //Draw model
-        _classifiers[ci_max]->visualize(*_viewer,*_best_coeffs);
 
-        _viewer.spinOnce(30,true);
-#endif
     }
     else {
         classification_shape = common::Classification();
