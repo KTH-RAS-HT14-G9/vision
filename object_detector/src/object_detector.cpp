@@ -24,7 +24,7 @@ bool _calibrated = false;
 ROIExtractor _roi_extractor;
 WallExtractor _wall_extractor;
 PreFilter _pre_filter;
-PclTransform _pcl_transform(10,0,0,0,0);
+PclTransform _pcl_transform(10,0.047,0,0,0);
 common::MarkerDelegate _marker_delegate("robot","walls");
 
 common::SharedPointCloudRGB _pcloud;
