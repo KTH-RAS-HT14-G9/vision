@@ -13,5 +13,3 @@ int32 TYPE_PURPLE_CROSS = 7
 int32 TYPE_PATRIC = 8
 
 int32 type
-
-bool confirmed
