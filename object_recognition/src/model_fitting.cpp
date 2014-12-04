@@ -51,6 +51,7 @@ common::Classification ModelFitting::classify(const common::SharedPointCloudRGB 
     return common::Classification(name(), nInliers/nPoints);
 }
 
+#ifdef ENABLE_VISUALIZATION_RECOGNITION
 void ModelFitting::visualize(pcl::visualization::PCLVisualizer &viewer, const pcl::ModelCoefficients& coefficients)
 {
     switch(_model) {
@@ -71,3 +72,4 @@ void ModelFitting::visualize(pcl::visualization::PCLVisualizer &viewer, const pc
     }
     }
 }
+#endif

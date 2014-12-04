@@ -1,9 +1,14 @@
 #include "object_recognition/object_confirmation.h"
 
 ObjectConfirmation::ObjectConfirmation()
-    :_min_ratio("/vision/recognition/confirmation/min_ratio",0.6)
-    ,_min_iterations("/vision/recognition/confirmation/min_frames",5)
-    ,_reset_threshold("/vision/recognition/confirmation/reset_threshold",5)
+    :_min_ratio_p1("/vision/recognition/confirmation/1_phase/min_ratio",0.6)
+    ,_min_iterations_p1("/vision/recognition/confirmation/1_phase/min_frames",3)
+    ,_reset_threshold_p1("/vision/recognition/confirmation/1_phase/reset_threshold",8)
+
+    ,_min_ratio_p2("/vision/recognition/confirmation/2_phase/min_ratio",0.6)
+    ,_min_iterations_p2("/vision/recognition/confirmation/2_phase/min_frames",15)
+    ,_reset_threshold_p2("/vision/recognition/confirmation/2_phase/reset_threshold",5)
+
     ,_empty_frames(0)
     ,_accumulated_frames(0)
 {
@@ -67,22 +72,26 @@ void ObjectConfirmation::reset_accumulation()
 void ObjectConfirmation::set_special_cases_map()
 //Initialize the special cases map
 {
-    int nCases = 6; //remember!!
+//    std::string special_colors[] = {"purple",  "orange",   "blue",     "blue",     "green_light",  "*"      };
+//    std::string special_shapes[] = {"*",       "undefined","undefined","Cylinder", "*",            "Sphere"};
 
-    std::string special_colors[] = {"purple",  "orange",   "blue",     "blue",     "green_light",  "*"      };
-    std::string special_shapes[] = {"*",       "undefined","undefined","Cylinder", "*",            "Sphere"};
+//    std::string real_colors[]    = {"purple",  "",         "blue",     "blue",     "green",        "*"      };
+//    std::string real_shapes[]    = {"Cross",   "Patrick",  "Triangle", "Triangle", "*",            "Ball"  };
 
-    std::string real_colors[]    = {"purple",  "",         "blue",     "blue",     "green",        "*"      };
-    std::string real_shapes[]    = {"Cross",   "Patrick",  "Triangle", "Triangle", "*",            "Ball"  };
+    std::vector<Case> cases_from;
+    std::vector<Case> cases_to;
 
-    for(int i=0;i < nCases;++i)
+    cases_from.push_back(std::make_pair("purple","*"));             cases_to.push_back(std::make_pair("purple","Cross"));
+    cases_from.push_back(std::make_pair("orange","undefined"));     cases_to.push_back(std::make_pair("","Patric"));
+    cases_from.push_back(std::make_pair("blue","undefined"));       cases_to.push_back(std::make_pair("blue","Triangle"));
+    cases_from.push_back(std::make_pair("blue","Cylinder"));        cases_to.push_back(std::make_pair("blue","Triangle"));
+    cases_from.push_back(std::make_pair("green_light","*"));        cases_to.push_back(std::make_pair("green","*"));
+    cases_from.push_back(std::make_pair("*","Sphere"));             cases_to.push_back(std::make_pair("*","Ball"));
+
+
+    for(int i=0; i < cases_from.size(); ++i)
     {
-        Case special_pair = std::make_pair(special_colors[i], special_shapes[i]);
-        Case real_pair = std::make_pair(real_colors[i], real_shapes[i]);
-
-        _special_case_map.insert(std::make_pair(special_pair,real_pair));
-
-        std::cout << "case: " << special_pair.first << " "<< special_pair.second <<" with "<<real_pair.first << " "<<real_pair.second<<std::endl;
+        _special_case_map.insert(std::make_pair(cases_from[i],cases_to[i]));
     }
 
 }
@@ -132,8 +141,30 @@ bool isUndefined(const std::string& str) {
 }
 
 bool ObjectConfirmation::update(const common::ObjectClassification& classification,
-                                common::ObjectClassification &confirmed_object)
+                                common::ObjectClassification &confirmed_object,
+                                int phase)
 {
+
+    double reset_threshold;
+    double min_iterations;
+    double min_ratio;
+
+    if (_last_phase != phase) {
+        reset_accumulation();
+        _empty_frames = 0;
+    }
+    _last_phase = phase;
+
+    if (phase == PHASE_DETECTION) {
+        reset_threshold = _reset_threshold_p1();
+        min_iterations = _min_iterations_p1();
+        min_ratio = _min_ratio_p1();
+    }
+    else {
+        reset_threshold = _reset_threshold_p2();
+        min_iterations = _min_iterations_p2();
+        min_ratio = _min_ratio_p2();
+    }
 
     Case corrected = correct_classification(classification.color().name(), classification.shape().name());
     common::Classification shape_class(corrected.second, classification.shape().probability());
@@ -145,7 +176,7 @@ bool ObjectConfirmation::update(const common::ObjectClassification& classificati
 //	ROS_ERROR("Shape: %s, Color: %s",classification.shape().name().c_str(), classification.color().name().c_str());
         _empty_frames++;
 
-        if (_empty_frames >= _reset_threshold()) {
+        if (_empty_frames >= reset_threshold) {
             reset_accumulation();
 			_empty_frames = 0;
         }
@@ -169,7 +200,7 @@ bool ObjectConfirmation::update(const common::ObjectClassification& classificati
     // Evaluation
 
     //ROS_ERROR("Accumulated frames: %d", _accumulated_frames);
-    if (_accumulated_frames > _min_iterations())
+    if (_accumulated_frames > min_iterations)
     {
         std::string name_shape;
         std::string name_color;
@@ -178,11 +209,11 @@ bool ObjectConfirmation::update(const common::ObjectClassification& classificati
         double ratio_color = calculate_max_ratio(_color_accumulator,name_color);
 
         common::Classification color,shape;
-        if (ratio_color > _min_ratio())
+        if (ratio_color > min_ratio)
         {
             color = common::Classification(name_color,1);
         }
-        if (ratio_shape > _min_ratio())
+        if (ratio_shape > min_ratio)
         {
             shape = _last_attributes.at(name_shape).shape();
         }

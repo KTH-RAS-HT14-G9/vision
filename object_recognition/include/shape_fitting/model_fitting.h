@@ -15,7 +15,9 @@ public:
 
     virtual common::Classification classify(const common::SharedPointCloudRGB& cloud, pcl::ModelCoefficients::Ptr& coefficients);
 
+#ifdef ENABLE_VISUALIZATION_RECOGNITION
     virtual void visualize(pcl::visualization::PCLVisualizer &viewer, const pcl::ModelCoefficients& coefficients);
+#endif
 
     void set_parameter();
 

@@ -3,6 +3,8 @@ project(object_recognition)
 
 #set(CMAKE_BUILD_TYPE Debug)
 
+#add_definitions( -DENABLE_VISUALIZATION_RECOGNITION )
+
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
