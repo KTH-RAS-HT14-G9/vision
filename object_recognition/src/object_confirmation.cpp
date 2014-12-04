@@ -111,7 +111,7 @@ ObjectConfirmation::Case ObjectConfirmation::correct_classification(const std::s
 
     std::map<Case,Case>::const_iterator iterator = _special_case_map.find(pair);
 
-    ROS_ERROR("Current: %s %s", name_color.c_str(), name_shape.c_str());
+//    ROS_ERROR("Current: %s %s", name_color.c_str(), name_shape.c_str());
 
     if (iterator!=_special_case_map.end())
     // If the detected color and shape form a special case, assign real case
@@ -127,7 +127,7 @@ ObjectConfirmation::Case ObjectConfirmation::correct_classification(const std::s
         std::cout << "special case detected" << std::endl;
         std::cout << "replacing " << name_color << " " << name_shape << " with " << map_color <<" " << map_shape << std::endl;
 
-        ROS_ERROR("Fixed: %s %s", map_color.c_str(), map_shape.c_str());
+//        ROS_ERROR("Fixed: %s %s", map_color.c_str(), map_shape.c_str());
 
         return std::make_pair(map_color, map_shape);
 
