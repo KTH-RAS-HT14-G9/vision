@@ -1,6 +1,9 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(object_detector)
 
+#add_definitions( -DENABLE_VISUALIZATION_ROIS )
+#add_definitions( -DENABLE_VISUALIZATION_PLANES )
+
 #set(PCL_DIR "/usr/share/pcl-1.7/")
 set(CMAKE_BUILD_TYPE Debug)
 

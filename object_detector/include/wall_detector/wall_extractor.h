@@ -19,7 +19,7 @@
 
 #include <Eigen/Core>
 
-#if ENABLE_VISUALIZATION_PLANES==1
+#ifdef ENABLE_VISUALIZATION_PLANES
 #include <common/visualization_addons.h>
 #include <pcl/visualization/cloud_viewer.h>
 #include <pcl/visualization/point_cloud_color_handlers.h>
@@ -69,7 +69,7 @@ protected:
 
     Eigen::Vector3f _down;
 private:
-#if ENABLE_VISUALIZATION_PLANES==1
+#ifdef ENABLE_VISUALIZATION_PLANES
     pcl::visualization::PCLVisualizer _viewer;
     pcl::ProjectInliers<pcl::PointXYZRGB> _proj;
     pcl::ConvexHull<pcl::PointXYZRGB> _hull;
