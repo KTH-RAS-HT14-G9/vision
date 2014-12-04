@@ -17,10 +17,12 @@ ShapeRecognition::~ShapeRecognition()
         delete _classifiers[i];
 }
 
+#ifdef ENABLE_VISUALIZATION_RECOGNITION
 void ShapeRecognition::set_viewer(boost::shared_ptr<pcl::visualization::PCLVisualizer> &viewer)
 {
     _viewer = viewer;
 }
+#endif
 
 bool ShapeRecognition::condition(const std::vector<pcl::ModelCoefficients>& planes, const std::vector<Eigen::Vector4f>& centroids)
 {

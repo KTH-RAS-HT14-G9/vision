@@ -2,6 +2,7 @@
 #include <std_msgs/String.h>
 #include <vision_msgs/ROI.h>
 #include <vision_msgs/Planes.h>
+#include <vision_msgs/Object.h>
 #include <color_detection/color_detector.h>
 #include <object_recognition/shape_recognition.h>
 #include <object_recognition/object_confirmation.h>
@@ -15,7 +16,7 @@
 #include <ras_msgs/RAS_Evidence.h>
 #include <sensor_msgs/Image.h>
 
-#if ENABLE_VISUALIZATION_RECOGNITION==1
+#ifdef ENABLE_VISUALIZATION_RECOGNITION
 #include <pcl/visualization/pcl_visualizer.h>
 #include <common/visualization_addons.h>
 #endif
@@ -33,9 +34,11 @@ sensor_msgs::Image::ConstPtr _img;
 
 std::vector<common::ObjectClassification > _classifications;
 
+int _recognition_phase = PHASE_DETECTION;
+
 int _num_rois = 0;
 
-#if ENABLE_VISUALIZATION_RECOGNITION==1
+#ifdef ENABLE_VISUALIZATION_RECOGNITION
 boost::shared_ptr<pcl::visualization::PCLVisualizer> _viewer(new pcl::visualization::PCLVisualizer("Recognition"));
 common::Colors _colors;
 #endif
@@ -76,6 +79,44 @@ void callback_planes(const vision_msgs::PlanesConstPtr& msg)
     }
 }
 
+int classificationToTypeID(common::ObjectClassification& classification)
+{
+    const std::string& shape = classification.shape().name();
+    const std::string& color = classification.color().name();
+
+    if (shape.compare("Cube") == 0)
+    {
+        if (color.compare("red") == 0) return vision_msgs::Object::TYPE_RED_CUBE;
+        if (color.compare("green") == 0) return vision_msgs::Object::TYPE_GREEN_CUBE;
+        if (color.compare("blue") == 0) return vision_msgs::Object::TYPE_BLUE_CUBE;
+        if (color.compare("yellow") == 0) return vision_msgs::Object::TYPE_YELLOW_CUBE;
+    }
+    if (shape.compare("Ball") == 0)
+    {
+        if (color.compare("red") == 0) return vision_msgs::Object::TYPE_RED_BALL;
+        if (color.compare("yellow") == 0) return vision_msgs::Object::TYPE_YELLOW_BALL;
+    }
+    if (shape.compare("Cylinder") == 0)
+    {
+        if (color.compare("green") == 0) return vision_msgs::Object::TYPE_GREEN_CYLINDER;
+    }
+    if (shape.compare("Triangle") == 0)
+    {
+        if (color.compare("blue") == 0) return vision_msgs::Object::TYPE_BLUE_TRIANGLE;
+    }
+    if (shape.compare("Cross") == 0)
+    {
+        if (color.compare("purple") == 0) return vision_msgs::Object::TYPE_PURPLE_CROSS;
+    }
+    if (shape.compare("Patric") == 0)
+    {
+        return vision_msgs::Object::TYPE_PATRIC;
+    }
+
+    ROS_ERROR("Could not convert %s %s to object type id.",shape.c_str(),color.c_str());
+    return vision_msgs::Object::TYPE_UNKNOWN;
+}
+
 int main(int argc, char **argv)
 {
     ros::init(argc, argv, "object_recognition");
@@ -91,8 +132,9 @@ int main(int argc, char **argv)
 
     ros::Subscriber sub_img = n.subscribe<sensor_msgs::Image>("camera/rgb/image_raw",3,callback_image);
     ros::Publisher pub_evidence = n.advertise<ras_msgs::RAS_Evidence>("/evidence",10);
+    ros::Publisher pub_obj_msg = n.advertise<vision_msgs::Object>("/vision/obstacle/object",10);
 
-#if ENABLE_VISUALIZATION_RECOGNITION==1
+#ifdef ENABLE_VISUALIZATION_RECOGNITION
     _viewer->addCoordinateSystem (1.0);
     _viewer->initCameraParameters ();
     _classifier_shape.set_viewer(_viewer);
@@ -104,7 +146,7 @@ int main(int argc, char **argv)
 
         timer.start();
 
-#if ENABLE_VISUALIZATION_RECOGNITION==1
+#ifdef ENABLE_VISUALIZATION_RECOGNITION
     _viewer->removeAllPointClouds();
     _viewer->removeAllShapes();
     _colors.reset();
@@ -123,7 +165,7 @@ int main(int argc, char **argv)
             common::Classification classification_color;
 
 
-#if ENABLE_VISUALIZATION_RECOGNITION==1
+#ifdef ENABLE_VISUALIZATION_RECOGNITION
             //-----------------------------------------------------------------
             //Draw cloud
             std::stringstream ss;
@@ -205,27 +247,63 @@ int main(int argc, char **argv)
         // Send classifications to object confirmation
 
         common::ObjectClassification classified_object;
-        if(_object_confirmation.update(strongest_classification,classified_object))
+        if(_object_confirmation.update(strongest_classification,classified_object,_recognition_phase))
         {
             //------------------------------------------------------------------------------
-            // Publish evidence
-            ROS_ERROR("Publishing %s to espeak.", classified_object.espeak_text().c_str());
-            std_msgs::String msg;
-            msg.data = classified_object.espeak_text();
-            //pub_espeak.publish(msg);
+            // Publish messages
+            if (!classified_object.shape().is_undefined() && !classified_object.color().is_undefined())
+            {
+                //------------------------------------------------------------------------------
+                // Publish object message
+                vision_msgs::Object obj_msg;
+                const Eigen::Vector3f& centroid = classified_object.shape().centroid();
+                obj_msg.x = centroid(0);
+                obj_msg.y = centroid(1);
 
-            ras_msgs::RAS_Evidence evidence;
-            evidence.stamp = ros::Time::now();
-            evidence.group_number = 9;
-            evidence.image_evidence = *_img;
-            evidence.object_id = classified_object.espeak_text();
-            pub_evidence.publish(evidence);
+                if (_recognition_phase == PHASE_RECOGNITION)
+                    obj_msg.type = classificationToTypeID(classified_object);
+                else
+                    obj_msg.type = vision_msgs::Object::TYPE_UNKNOWN;
 
+                pub_obj_msg.publish(obj_msg);
+
+                //only publish evidence when we have classified in phase 2
+                if (_recognition_phase == PHASE_RECOGNITION)
+                {
+                    //------------------------------------------------------------------------------
+                    // Publish evidence
+                    ROS_ERROR("Publishing %s to espeak.", classified_object.espeak_text().c_str());
+                    std_msgs::String msg;
+                    msg.data = classified_object.espeak_text();
+                    //pub_espeak.publish(msg);
+
+                    if (_img != NULL) {
+
+                        ras_msgs::RAS_Evidence evidence;
+                        evidence.stamp = ros::Time::now();
+                        evidence.group_number = 9;
+                        evidence.image_evidence = *_img;
+                        evidence.object_id = classified_object.espeak_text();
+                        pub_evidence.publish(evidence);
+
+                    }
+
+
+                    //------------------------------------------------------------------------------
+                    // Publish marker
+                    _marker_delegate.add(classified_object);
+                    pub_viz.publish(_marker_delegate.get());
+                }
+            }
 
             //------------------------------------------------------------------------------
-            // Publish marker
-            _marker_delegate.add(classified_object);
-            pub_viz.publish(_marker_delegate.get());
+            // Switch phase
+            if (_recognition_phase == PHASE_DETECTION) {
+                _recognition_phase = PHASE_RECOGNITION;
+            }
+            else {
+                _recognition_phase = PHASE_DETECTION;
+            }
         }
 
         ROS_INFO("Recognition - Time: %lf",timer.elapsed());

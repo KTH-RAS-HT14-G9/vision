@@ -28,7 +28,7 @@ WallExtractor::WallExtractor()
     _cluster_ex.setMinClusterSize(20);
     _cluster_ex.setMaxClusterSize(std::numeric_limits<int>::max());
 
-#if ENABLE_VISUALIZATION_PLANES==1
+#ifdef ENABLE_VISUALIZATION_PLANES
     //visualization::PCLVisualizer viewer("Viewer");
     _viewer.addCoordinateSystem (1.0);
     _viewer.initCameraParameters ();
@@ -81,7 +81,7 @@ common::vision::SegmentedPlane::ArrayPtr WallExtractor::extract(const common::Sh
     _cloud_p->clear();
     _cloud_f->clear();
 
-#if ENABLE_VISUALIZATION_PLANES==1
+#ifdef ENABLE_VISUALIZATION_PLANES
     _viewer.removeAllPointClouds();
     _viewer.removeAllShapes();
     _colors.reset();
@@ -156,7 +156,7 @@ common::vision::SegmentedPlane::ArrayPtr WallExtractor::extract(const common::Sh
         //common::OrientedBoundingBox obb(_cloud_p);
         walls->push_back(SegmentedPlane(coefficients,obb));
 
-#if ENABLE_VISUALIZATION_PLANES==1
+#ifdef ENABLE_VISUALIZATION_PLANES
         _extract.setNegative (false);
         _extract.filter (*_cloud_p);
 
@@ -193,7 +193,7 @@ common::vision::SegmentedPlane::ArrayPtr WallExtractor::extract(const common::Sh
         i++;
     }
 
-#if ENABLE_VISUALIZATION_PLANES==1
+#ifdef ENABLE_VISUALIZATION_PLANES
     std::cerr << "Walls fitted: " << i << std::endl;
 
     pcl::visualization::AddPointCloud(_viewer,_cloud_filtered,"unclassified",255,255,255);

@@ -18,7 +18,9 @@ public:
 
     bool condition(const std::vector<pcl::ModelCoefficients> &planes, const std::vector<Eigen::Vector4f> &centroids);
 
+#ifdef ENABLE_VISUALIZATION_RECOGNITION
     void set_viewer(boost::shared_ptr<pcl::visualization::PCLVisualizer>& viewer);
+#endif
 
 protected:
 
@@ -33,7 +35,9 @@ protected:
     std::vector<ShapeClassifierBase*> _classifiers;
     const common::vision::SegmentedPlane* _ground_plane;
 
+#ifdef ENABLE_VISUALIZATION_RECOGNITION
     boost::shared_ptr<pcl::visualization::PCLVisualizer> _viewer;
+#endif
 };
 
 #endif // SHAPE_RECOGNITION_H

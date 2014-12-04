@@ -3,7 +3,7 @@
 ROIExtractor::ROIExtractor()
 //    :_plane_clipper(Eigen::Vector4f(0,0,0,0))
 {
-#if ENABLE_VISUALIZATION_ROIS==1
+#ifdef ENABLE_VISUALIZATION_ROIS
     _viewer.addCoordinateSystem (1.0);
     _viewer.initCameraParameters ();
 
@@ -86,7 +86,7 @@ common::vision::ROIArrayPtr ROIExtractor::extract(
     pcl::copyPointCloud(*pcloud,filtered.indices,*cloud_t);
 
 
-#if ENABLE_VISUALIZATION_ROIS==1
+#ifdef ENABLE_VISUALIZATION_ROIS
     _viewer.removeAllPointClouds();
     _viewer.removeAllShapes();
     _colors.reset();
@@ -121,7 +121,7 @@ common::vision::ROIArrayPtr ROIExtractor::extract(
 
     int ground_plane = 0;
 
-#if ENABLE_VISUALIZATION_ROIS==1
+#ifdef ENABLE_VISUALIZATION_ROIS
 
     std::stringstream ss;
     ss << "Ground";
@@ -166,7 +166,7 @@ common::vision::ROIArrayPtr ROIExtractor::extract(
 
             pcl::copyPointCloud(*cloud_t, indices, *cluster_cloud);
 
-    #if ENABLE_VISUALIZATION_ROIS==1
+    #ifdef ENABLE_VISUALIZATION_ROIS
             std::stringstream ss;
             ss << "Cluster" << i++;
             common::Color c = _colors.next();
@@ -179,7 +179,7 @@ common::vision::ROIArrayPtr ROIExtractor::extract(
     }
 
 
-#if ENABLE_VISUALIZATION_ROIS==1
+#ifdef ENABLE_VISUALIZATION_ROIS
     _viewer.spinOnce(1,true);
 #endif
 

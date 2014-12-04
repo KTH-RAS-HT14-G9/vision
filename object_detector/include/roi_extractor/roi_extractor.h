@@ -12,7 +12,7 @@
 #include <pcl/pcl_base.h>
 #include <pcl/segmentation/extract_clusters.h>
 
-#if ENABLE_VISUALIZATION_ROIS==1
+#ifdef ENABLE_VISUALIZATION_ROIS
 #include <common/visualization_addons.h>
 #include <pcl/visualization/cloud_viewer.h>
 #include <pcl/visualization/point_cloud_color_handlers.h>
@@ -61,7 +61,7 @@ protected:
     std::vector<int> _point_indices;
     std::vector<int> _index_buffer;
 private:
-#if ENABLE_VISUALIZATION_ROIS==1
+#ifdef ENABLE_VISUALIZATION_ROIS
     pcl::visualization::PCLVisualizer _viewer;
     common::Colors _colors;
 #endif

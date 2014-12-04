@@ -154,6 +154,7 @@ void PlaneFitting::build_multiple_plane_model(std::vector<pcl::ModelCoefficients
     }
 }
 
+#ifdef ENABLE_VISUALIZATION_RECOGNITION
 void PlaneFitting::visualize(pcl::visualization::PCLVisualizer &viewer, const pcl::ModelCoefficients &coefficients)
 {
 
@@ -170,3 +171,4 @@ void PlaneFitting::visualize(pcl::visualization::PCLVisualizer &viewer, const pc
         viewer.addPlane(plane,0,0,0,ss.str());
     }
 }
+#endif
