@@ -274,7 +274,8 @@ int main(int argc, char **argv)
                 pub_obj_msg.publish(obj_msg);
 
                 //only publish evidence when we have classified in phase 2
-                if (_recognition_phase == PHASE_RECOGNITION)
+                if (_recognition_phase == PHASE_RECOGNITION &&
+                        obj_msg.type != vision_msgs::Object::TYPE_UNKNOWN)
                 {
                     //------------------------------------------------------------------------------
                     // Publish evidence
