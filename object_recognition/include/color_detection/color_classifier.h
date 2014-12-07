@@ -102,7 +102,7 @@ void ColorClassifier::build_histogram(double hue)
 
 double ColorClassifier::weight_refsize(int total_size)
 {
-    std::cout << "total_size: " << total_size << std::endl;
+//    std::cout << "total_size: " << total_size << std::endl;
 
     double percent=(double)_count_ref_hue/(double)total_size;
 
@@ -153,7 +153,7 @@ double ColorClassifier::classify(const std::vector<double> &hues)
 
     prob=prob*weight_refsize(hues.size());
 
-    std::cout << _count_ref_hue << " "<<_count_orange << " " << hues.size()<< " " << weight_refsize(hues.size()) << std::endl;
+//    std::cout << _count_ref_hue << " "<<_count_orange << " " << hues.size()<< " " << weight_refsize(hues.size()) << std::endl;
 
     _count_ref_hue=0;
     _count_orange=0;
