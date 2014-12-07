@@ -260,10 +260,16 @@ int main(int argc, char **argv)
                 obj_msg.x = centroid(0);
                 obj_msg.y = centroid(1);
 
+                //TODO: Fix me
+                if (obj_msg.x == 0)
+                    obj_msg.x = 0.5;
+
                 if (_recognition_phase == PHASE_RECOGNITION)
                     obj_msg.type = classificationToTypeID(classified_object);
                 else
                     obj_msg.type = vision_msgs::Object::TYPE_UNKNOWN;
+
+                ROS_ERROR("Type: %d, Obj (%.3lf ,%.3lf)", obj_msg.type, obj_msg.x,obj_msg.y);
 
                 pub_obj_msg.publish(obj_msg);
 
@@ -275,7 +281,7 @@ int main(int argc, char **argv)
                     ROS_ERROR("Publishing %s to espeak.", classified_object.espeak_text().c_str());
                     std_msgs::String msg;
                     msg.data = classified_object.espeak_text();
-                    //pub_espeak.publish(msg);
+                    pub_espeak.publish(msg);
 
                     if (_img != NULL) {
 
@@ -291,8 +297,8 @@ int main(int argc, char **argv)
 
                     //------------------------------------------------------------------------------
                     // Publish marker
-                    _marker_delegate.add(classified_object);
-                    pub_viz.publish(_marker_delegate.get());
+                    //_marker_delegate.add(classified_object);
+                    //pub_viz.publish(_marker_delegate.get());
                 }
             }
 
@@ -306,7 +312,7 @@ int main(int argc, char **argv)
             }
         }
 
-        ROS_INFO("Recognition - Time: %lf",timer.elapsed());
+        //ROS_INFO("Recognition - Time: %lf",timer.elapsed());
 
 
 //        std::cerr << "---------------------------------------------" << std::endl << std::endl;
