@@ -24,7 +24,7 @@ bool _calibrated = false;
 ROIExtractor _roi_extractor;
 WallExtractor _wall_extractor;
 PreFilter _pre_filter;
-PclTransform _pcl_transform(10,0.047,0,0,0);
+PclTransform _pcl_transform(10,0.047,0.08,DEG2RAD(2),0);
 common::MarkerDelegate _marker_delegate("robot","walls");
 
 common::SharedPointCloudRGB _pcloud;
@@ -149,16 +149,16 @@ int main(int argc, char **argv)
             ROS_INFO("Time spent on vision. Sum: %.3lf | Transform: %.3lf | Prefilter: %.3lf | Walls: %.3lf | Rois: %.3lf\n", t_sum, t_transform, t_prefilter, t_walls, t_rois);
 #endif
 
-            roimsg->pointClouds.clear();
-            common::vision::roiToMsg(rois,roimsg);
-            pub_rois.publish(roimsg);
-
-            planesmsg->planes.clear();
-            common::vision::planesToMsg(walls,planesmsg);
-            pub_planes.publish(planesmsg);
-
 
             if (_calibrated) {
+                roimsg->pointClouds.clear();
+                common::vision::roiToMsg(rois,roimsg);
+                pub_rois.publish(roimsg);
+
+                planesmsg->planes.clear();
+                common::vision::planesToMsg(walls,planesmsg);
+                pub_planes.publish(planesmsg);
+
                 _marker_delegate.add(planesmsg);
                 pub_viz.publish(_marker_delegate.get());
                 _marker_delegate.clear();
