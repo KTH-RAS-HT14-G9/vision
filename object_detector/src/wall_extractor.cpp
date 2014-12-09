@@ -237,8 +237,8 @@ int WallExtractor::find_ground_plane(common::vision::SegmentedPlane::ArrayPtr& w
     //check if it's the true ground (happens only when we do not see the ground)
     if (max_metric < 0.8) {
         ground_plane = -1;
-        std::cerr << "-----------> No ground to see <-----------" << std::endl;
-        std::cerr << "Greatest metric: " << max_metric << std::endl << std::endl;
+//        std::cerr << "-----------> No ground to see <-----------" << std::endl;
+//        std::cerr << "Greatest metric: " << max_metric << std::endl << std::endl;
 
         return -1;
     }

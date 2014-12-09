@@ -131,15 +131,10 @@ common::Classification ShapeRecognition::classify(const common::PointCloudRGB::P
 
         Eigen::Vector3f centroid;
 
-        if (classification_shape.name().compare("Cube") == 0) {
-            Eigen::Vector4f centroid4;
-            pcl::compute3DCentroid(*roi,centroid4);
-            centroid = centroid4.head<3>();
-        }
-        else {
-            centroid(0) = _best_coeffs->values[0];
-            centroid(1) = _best_coeffs->values[1];
-        }
+        //calculate the position based on the pcl centroid
+        Eigen::Vector4f centroid4;
+        pcl::compute3DCentroid(*roi,centroid4);
+        centroid = centroid4.head<3>();
 
         centroid(2) = obj_d/2.0;
 
@@ -151,8 +146,23 @@ common::Classification ShapeRecognition::classify(const common::PointCloudRGB::P
 
     }
     else {
+        const float obj_d = 0.04;
+
+        Eigen::Vector3f centroid;
+
         classification_shape = common::Classification();
-        std::cerr << "No object recognized" << std::endl;
+        Eigen::Vector4f centroid4;
+        pcl::compute3DCentroid(*roi,centroid4);
+        centroid = centroid4.head<3>();
+
+        centroid(2) = obj_d/2.0;
+
+        common::OrientedBoundingBox::Ptr obb(new common::OrientedBoundingBox(centroid,Eigen::Quaternionf(1,0,0,0),obj_d,obj_d,obj_d));
+        classification_shape.set_shape_attributes(_best_coeffs,
+                                                  centroid,
+                                                  obb);
+
+//        std::cerr << "No object recognized" << std::endl;
     }
 
     return classification_shape;

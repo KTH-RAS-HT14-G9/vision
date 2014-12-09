@@ -37,6 +37,7 @@ std::vector<common::ObjectClassification > _classifications;
 int _recognition_phase = PHASE_DETECTION;
 
 int _num_rois = 0;
+bool _received_rois = false;
 
 #ifdef ENABLE_VISUALIZATION_RECOGNITION
 boost::shared_ptr<pcl::visualization::PCLVisualizer> _viewer(new pcl::visualization::PCLVisualizer("Recognition"));
@@ -51,6 +52,7 @@ void callback_image(const sensor_msgs::Image::ConstPtr& msg)
 void callback_rois(const vision_msgs::ROIConstPtr& rois)
 {
     _num_rois = rois->pointClouds.size();
+    _received_rois = true;
 
     while(_clouds.size() < _num_rois) {
         _clouds.push_back(pcl::PointCloud<pcl::PointXYZRGB>::Ptr(new pcl::PointCloud<pcl::PointXYZRGB>));
@@ -199,114 +201,126 @@ int main(int argc, char **argv)
 
             //determine color
             classification_color = _classifier_color.classify(_clouds[i]);
+            classification_color.set_shape_attributes(classification_shape.coefficients(), classification_shape.centroid(), classification_shape.obb());
 
             common::ObjectClassification classified_object(classification_shape,classification_color);
             _classifications.push_back(classified_object);
         }
 
-        //----------------------------------------------------------------------
-        // Determine strongest ROI classification
+        //only update the recognition state when we receive data from the detection
+        if (_received_rois) {
 
-        double max_color_prob = 0;
-        int max_color_i = -1;
-        for (int i = 0; i < _classifications.size(); ++i)
-        {
-            if (_classifications[i].color().probability() > max_color_prob)
+            //----------------------------------------------------------------------
+            // Determine strongest ROI classification
+
+            double max_color_prob = 0;
+            int max_color_i = -1;
+            for (int i = 0; i < _classifications.size(); ++i)
             {
-                max_color_prob = _classifications[i].color().probability();
-                max_color_i = i;
-            }
-        }
-
-
-        double max_shape_prob = 0;
-        int max_shape_i = -1;
-        for (int i = 0; i < _classifications.size(); ++i)
-        {
-            if (_classifications[i].shape().probability() > max_shape_prob)
-            {
-                max_shape_prob = _classifications[i].shape().probability();
-                max_shape_i = i;
-            }
-        }
-
-
-        common::Classification strongest_shape;
-        common::Classification strongest_color;
-        if (max_shape_i >= 0) {
-            strongest_shape = _classifications[max_shape_i].shape();
-        }
-        if (max_color_i >= 0) {
-            strongest_color = _classifications[max_color_i].color();
-        }
-
-        common::ObjectClassification strongest_classification(strongest_shape,strongest_color);
-
-
-        //------------------------------------------------------------------------------
-        // Send classifications to object confirmation
-
-        common::ObjectClassification classified_object;
-        if(_object_confirmation.update(strongest_classification,classified_object,_recognition_phase))
-        {
-            //------------------------------------------------------------------------------
-            // Publish messages
-            if (!classified_object.shape().is_undefined() && !classified_object.color().is_undefined())
-            {
-                //------------------------------------------------------------------------------
-                // Publish object message
-                vision_msgs::Object obj_msg;
-                const Eigen::Vector3f& centroid = classified_object.shape().centroid();
-                obj_msg.x = centroid(0);
-                obj_msg.y = centroid(1);
-
-                if (_recognition_phase == PHASE_RECOGNITION)
-                    obj_msg.type = classificationToTypeID(classified_object);
-                else
-                    obj_msg.type = vision_msgs::Object::TYPE_UNKNOWN;
-
-                pub_obj_msg.publish(obj_msg);
-
-                //only publish evidence when we have classified in phase 2
-                if (_recognition_phase == PHASE_RECOGNITION)
+                if (_classifications[i].color().probability() > max_color_prob)
                 {
-                    //------------------------------------------------------------------------------
-                    // Publish evidence
-                    ROS_ERROR("Publishing %s to espeak.", classified_object.espeak_text().c_str());
-                    std_msgs::String msg;
-                    msg.data = classified_object.espeak_text();
-                    //pub_espeak.publish(msg);
-
-                    if (_img != NULL) {
-
-                        ras_msgs::RAS_Evidence evidence;
-                        evidence.stamp = ros::Time::now();
-                        evidence.group_number = 9;
-                        evidence.image_evidence = *_img;
-                        evidence.object_id = classified_object.espeak_text();
-                        pub_evidence.publish(evidence);
-
-                    }
-
-
-                    //------------------------------------------------------------------------------
-                    // Publish marker
-                    _marker_delegate.add(classified_object);
-                    pub_viz.publish(_marker_delegate.get());
+                    max_color_prob = _classifications[i].color().probability();
+                    max_color_i = i;
                 }
             }
 
-            //------------------------------------------------------------------------------
-            // Switch phase
-            if (_recognition_phase == PHASE_DETECTION) {
-                _recognition_phase = PHASE_RECOGNITION;
-            }
-            else {
-                _recognition_phase = PHASE_DETECTION;
-            }
-        }
 
-        ROS_INFO("Recognition - Time: %lf",timer.elapsed());
+            double max_shape_prob = 0;
+            int max_shape_i = -1;
+            for (int i = 0; i < _classifications.size(); ++i)
+            {
+                if (_classifications[i].shape().probability() > max_shape_prob)
+                {
+                    max_shape_prob = _classifications[i].shape().probability();
+                    max_shape_i = i;
+                }
+            }
+
+
+            common::Classification strongest_shape;
+            common::Classification strongest_color;
+            if (max_shape_i >= 0) {
+                strongest_shape = _classifications[max_shape_i].shape();
+            }
+            if (max_color_i >= 0) {
+                strongest_color = _classifications[max_color_i].color();
+            }
+
+            common::ObjectClassification strongest_classification(strongest_shape,strongest_color);
+
+
+            //------------------------------------------------------------------------------
+            // Send classifications to object confirmation
+
+            common::ObjectClassification classified_object;
+            if(_object_confirmation.update(strongest_classification,classified_object,_recognition_phase))
+            {
+                //------------------------------------------------------------------------------
+                // Publish messages
+                if (!classified_object.shape().is_undefined() && !classified_object.color().is_undefined())
+                {
+                    //------------------------------------------------------------------------------
+                    // Publish object message
+                    vision_msgs::Object obj_msg;
+                    const Eigen::Vector3f& centroid = classified_object.shape().centroid();
+                    obj_msg.x = centroid(0);
+                    obj_msg.y = centroid(1);
+
+                    //TODO: Fix me
+                    if (obj_msg.x == 0)
+                        obj_msg.x = 0.5;
+
+                    if (_recognition_phase == PHASE_RECOGNITION)
+                        obj_msg.type = classificationToTypeID(classified_object);
+                    else
+                        obj_msg.type = vision_msgs::Object::TYPE_UNKNOWN;
+
+                    ROS_ERROR("Type: %d, Obj (%.3lf ,%.3lf)", obj_msg.type, obj_msg.x,obj_msg.y);
+
+                    pub_obj_msg.publish(obj_msg);
+
+                    //only publish evidence when we have classified in phase 2
+                    if (_recognition_phase == PHASE_RECOGNITION &&
+                            obj_msg.type != vision_msgs::Object::TYPE_UNKNOWN)
+                    {
+                        //------------------------------------------------------------------------------
+                        // Publish evidence
+                        ROS_ERROR("Publishing %s to espeak.", classified_object.espeak_text().c_str());
+                        std_msgs::String msg;
+                        msg.data = classified_object.espeak_text();
+                        pub_espeak.publish(msg);
+
+                        if (_img != NULL) {
+
+                            ras_msgs::RAS_Evidence evidence;
+                            evidence.stamp = ros::Time::now();
+                            evidence.group_number = 9;
+                            evidence.image_evidence = *_img;
+                            evidence.object_id = classified_object.espeak_text();
+                            pub_evidence.publish(evidence);
+
+                        }
+
+
+                        //------------------------------------------------------------------------------
+                        // Publish marker
+                        //_marker_delegate.add(classified_object);
+                        //pub_viz.publish(_marker_delegate.get());
+                    }
+                }
+
+                //------------------------------------------------------------------------------
+                // Switch phase
+                if (_recognition_phase == PHASE_DETECTION) {
+                    _recognition_phase = PHASE_RECOGNITION;
+                }
+                else {
+                    _recognition_phase = PHASE_DETECTION;
+                }
+            }
+        } // if _received_rois
+
+        //ROS_INFO("Recognition - Time: %lf",timer.elapsed());
 
 
 //        std::cerr << "---------------------------------------------" << std::endl << std::endl;
@@ -316,8 +330,9 @@ int main(int argc, char **argv)
 
         for (int i = 0; i < _clouds.size(); ++i) {
             _clouds[i]->clear();
-            _num_rois = 0;
         }
+        _num_rois = 0;
+        _received_rois = false;
         _classifications.clear();
 
         ros::spinOnce();

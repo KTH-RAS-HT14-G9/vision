@@ -167,8 +167,11 @@ bool ObjectConfirmation::update(const common::ObjectClassification& classificati
     }
 
     Case corrected = correct_classification(classification.color().name(), classification.shape().name());
-    common::Classification shape_class(corrected.second, classification.shape().probability());
-    common::Classification color_class(corrected.first, classification.color().probability());
+    common::Classification shape_class = classification.shape();
+    shape_class.rename(corrected.second);
+
+    common::Classification color_class = classification.color();
+    color_class.rename(corrected.first);
 
     //if shape is undefined
     if (shape_class.is_undefined()) {

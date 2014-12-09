@@ -76,7 +76,7 @@ common::Classification ColorDetector::classify(const common::PointCloudRGB::Ptr 
     {
         ColorClassifier& classifier = _classifiers[i];
         double probability = classifier.classify(_hues);
-        std::cout << probability << std::endl;
+//        std::cout << probability << std::endl;
         if (probability > max_probability)
         {
             max_probability = probability;
@@ -95,14 +95,16 @@ common::Classification ColorDetector::classify(const common::PointCloudRGB::Ptr 
 
     if (best_i==-1)
     {
-        std::cout << "It is uncolored" << " with probability " << max_probability<< std::endl;
-        _classifiers.push_back(ColorClassifier("uncolored",1.0));
+//        std::cout << "It is uncolored" << " with probability " << max_probability<< std::endl;
+//        _classifiers.push_back(ColorClassifier("uncolored",1.0));
 
-        return common::Classification(_classifiers[best_i].name(), 1.0);
+//        return common::Classification(_classifiers[best_i].name(), 1.0);
+
+        return common::Classification();
     }
     else
     {
-        std::cout << "It is " << _classifiers[best_i].name()<< " with probability " << max_probability << std::endl;
+//        std::cout << "It is " << _classifiers[best_i].name()<< " with probability " << max_probability << std::endl;
         return common::Classification(_classifiers[best_i].name(), max_probability);
     }
 }
