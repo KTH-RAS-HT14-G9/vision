@@ -131,15 +131,16 @@ common::Classification ShapeRecognition::classify(const common::PointCloudRGB::P
 
         Eigen::Vector3f centroid;
 
-        if (classification_shape.name().compare("Cube") == 0) {
-            Eigen::Vector4f centroid4;
-            pcl::compute3DCentroid(*roi,centroid4);
-            centroid = centroid4.head<3>();
-        }
-        else {
-            centroid(0) = _best_coeffs->values[0];
-            centroid(1) = _best_coeffs->values[1];
-        }
+        //calculate the position based on the pcl centroid
+        Eigen::Vector4f centroid4;
+        pcl::compute3DCentroid(*roi,centroid4);
+        centroid = centroid4.head<3>();
+
+//        if (classification_shape.name().compare("Sphere") == 0)
+//        {
+//            centroid(0) = _best_coeffs->values[0];
+//            centroid(1) = _best_coeffs->values[1];
+//        }
 
         Eigen::Vector4f centroid4;
         pcl::compute3DCentroid(*roi,centroid4);
