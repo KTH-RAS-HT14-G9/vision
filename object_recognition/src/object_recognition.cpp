@@ -39,6 +39,8 @@ int _recognition_phase = PHASE_DETECTION;
 int _num_rois = 0;
 bool _received_rois = false;
 
+double _original_voxel_size;
+
 #ifdef ENABLE_VISUALIZATION_RECOGNITION
 boost::shared_ptr<pcl::visualization::PCLVisualizer> _viewer(new pcl::visualization::PCLVisualizer("Recognition"));
 common::Colors _colors;
@@ -313,9 +315,12 @@ int main(int argc, char **argv)
                 // Switch phase
                 if (_recognition_phase == PHASE_DETECTION) {
                     _recognition_phase = PHASE_RECOGNITION;
+                    ros::param::getCached("/vision/filter/down_sampling/leaf_size",_original_voxel_size);
+                    ros::param::set("/vision/filter/down_sampling/leaf_size",(_original_voxel_size*2.0)/3.0);
                 }
                 else {
                     _recognition_phase = PHASE_DETECTION;
+                    ros::param::set("/vision/filter/down_sampling/leaf_size", _original_voxel_size);
                 }
             }
         } // if _received_rois
