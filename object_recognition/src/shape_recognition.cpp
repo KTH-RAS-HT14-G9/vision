@@ -136,16 +136,6 @@ common::Classification ShapeRecognition::classify(const common::PointCloudRGB::P
         pcl::compute3DCentroid(*roi,centroid4);
         centroid = centroid4.head<3>();
 
-//        if (classification_shape.name().compare("Sphere") == 0)
-//        {
-//            centroid(0) = _best_coeffs->values[0];
-//            centroid(1) = _best_coeffs->values[1];
-//        }
-
-        Eigen::Vector4f centroid4;
-        pcl::compute3DCentroid(*roi,centroid4);
-        centroid = centroid4.head<3>();
-
         centroid(2) = obj_d/2.0;
 
         common::OrientedBoundingBox::Ptr obb(new common::OrientedBoundingBox(centroid,Eigen::Quaternionf(1,0,0,0),obj_d,obj_d,obj_d));
