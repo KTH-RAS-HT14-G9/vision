@@ -322,7 +322,7 @@ int main(int argc, char **argv)
                     _recognition_phase = PHASE_DETECTION;
                     ros::param::set("/vision/filter/down_sampling/leaf_size", _original_voxel_size);
                 }
-            }
+            } // if confirmed
         } // if _received_rois
 
         //ROS_INFO("Recognition - Time: %lf",timer.elapsed());
