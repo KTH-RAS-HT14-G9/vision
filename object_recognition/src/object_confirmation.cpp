@@ -88,7 +88,8 @@ void ObjectConfirmation::set_special_cases_map()
     std::vector<Case> cases_to;
 
     cases_from.push_back(std::make_pair("purple","*"));             cases_to.push_back(std::make_pair("purple","Cross"));
-    cases_from.push_back(std::make_pair("orange","undefined"));     cases_to.push_back(std::make_pair("","Patric"));
+    //cases_from.push_back(std::make_pair("orange","undefined"));     cases_to.push_back(std::make_pair("","Patric"));
+    cases_from.push_back(std::make_pair("orange","*"));             cases_to.push_back(std::make_pair("","Patric"));
     cases_from.push_back(std::make_pair("blue","undefined"));       cases_to.push_back(std::make_pair("blue","Triangle"));
     cases_from.push_back(std::make_pair("blue","Cylinder"));        cases_to.push_back(std::make_pair("blue","Triangle"));
     cases_from.push_back(std::make_pair("green_light","*"));        cases_to.push_back(std::make_pair("green","*"));
