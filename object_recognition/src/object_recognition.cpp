@@ -1,5 +1,6 @@
 #include <ros/ros.h>
 #include <std_msgs/String.h>
+#include <std_msgs/Empty.h>
 #include <vision_msgs/ROI.h>
 #include <vision_msgs/Planes.h>
 #include <vision_msgs/Object.h>
@@ -83,6 +84,15 @@ void callback_planes(const vision_msgs::PlanesConstPtr& msg)
     }
 }
 
+void callback_recognize(const std_msgs::EmptyConstPtr& empty)
+{
+    _recognition_phase = PHASE_RECOGNITION;
+    //_object_confirmation.reset();
+
+    ros::param::getCached("/vision/filter/down_sampling/leaf_size",_original_voxel_size);
+    ros::param::set("/vision/filter/down_sampling/leaf_size",(_original_voxel_size*0.75));
+}
+
 int classificationToTypeID(common::ObjectClassification& classification)
 {
     const std::string& shape = classification.shape().name();
@@ -131,12 +141,15 @@ int main(int argc, char **argv)
 
     ros::Subscriber sub_rois = n.subscribe<vision_msgs::ROI>("/vision/obstacles/rois",3,callback_rois);
     ros::Subscriber sub_planes = n.subscribe<vision_msgs::Planes>("/vision/obstacles/planes",3,callback_planes);
+    ros::Subscriber sub_img = n.subscribe<sensor_msgs::Image>("camera/rgb/image_raw",3,callback_image);
+    ros::Subscriber sub_recognize = n.subscribe<std_msgs::Empty>("/vision/recognize_now",3,callback_recognize);
+
+
+    ros::Publisher pub_obj_msg = n.advertise<vision_msgs::Object>("/vision/obstacle/object",10);
+
     ros::Publisher pub_espeak = n.advertise<std_msgs::String>("/espeak/string",1);
     ros::Publisher pub_viz = n.advertise<visualization_msgs::MarkerArray>("visualization_marker_array",10);
-
-    ros::Subscriber sub_img = n.subscribe<sensor_msgs::Image>("camera/rgb/image_raw",3,callback_image);
     ros::Publisher pub_evidence = n.advertise<ras_msgs::RAS_Evidence>("/evidence",10);
-    ros::Publisher pub_obj_msg = n.advertise<vision_msgs::Object>("/vision/obstacle/object",10);
 
 #ifdef ENABLE_VISUALIZATION_RECOGNITION
     _viewer->addCoordinateSystem (1.0);
@@ -313,12 +326,7 @@ int main(int argc, char **argv)
 
                 //------------------------------------------------------------------------------
                 // Switch phase
-                if (_recognition_phase == PHASE_DETECTION) {
-                    _recognition_phase = PHASE_RECOGNITION;
-                    ros::param::getCached("/vision/filter/down_sampling/leaf_size",_original_voxel_size);
-                    ros::param::set("/vision/filter/down_sampling/leaf_size",(_original_voxel_size*2.0)/3.0);
-                }
-                else {
+                if (_recognition_phase == PHASE_RECOGNITION) {
                     _recognition_phase = PHASE_DETECTION;
                     ros::param::set("/vision/filter/down_sampling/leaf_size", _original_voxel_size);
                 }
