@@ -76,7 +76,6 @@ int main(int argc, char **argv)
 
     ros::NodeHandle n;
     ros::Subscriber sub_pcloud = n.subscribe<pcl::PointCloud<pcl::PointXYZRGB> >("/camera/depth_registered/points", 3, callback_point_cloud);
-    ros::Publisher pub_detection = n.advertise<std_msgs::Float64>("/vision/detector/obstacle/distance",10);
     ros::Publisher pub_rois = n.advertise<vision_msgs::ROI>("/vision/obstacles/rois",10);
     ros::Publisher pub_planes = n.advertise<vision_msgs::Planes>("/vision/obstacles/planes",10);
     ros::Publisher pub_viz = n.advertise<visualization_msgs::MarkerArray>("visualization_marker_array",10);

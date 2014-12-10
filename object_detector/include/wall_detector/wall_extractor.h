@@ -60,6 +60,7 @@ protected:
                                    const pcl::PointCloud<pcl::PointXYZRGB>& points,
                                    const std::vector<int>& indices,
                                    common::OrientedBoundingBox& obb);
+    void extract_largest_cluster_bounds(std::vector<float>& points, float min_gap, float& min, float& max);
 
     pcl::SACSegmentation<pcl::PointXYZRGB> _seg;
     common::PointCloudRGB::Ptr _cloud_filtered, _cloud_p, _cloud_f;

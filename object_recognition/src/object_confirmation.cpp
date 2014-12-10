@@ -15,6 +15,12 @@ ObjectConfirmation::ObjectConfirmation()
     set_special_cases_map();
 }
 
+void ObjectConfirmation::reset()
+{
+    reset_accumulation();
+    _empty_frames = 0;
+}
+
 void ObjectConfirmation::increment(std::map<std::string,int> &map, const common::Classification &name)
 {
     std::map<std::string,int>::iterator it = map.find(name.name());
