@@ -13,6 +13,7 @@ public:
     ObjectConfirmation();
 
     bool update(const common::ObjectClassification& classification, common::ObjectClassification& confirmed_object, int phase);
+    void reset();
 
 protected:
 
