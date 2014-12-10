@@ -175,55 +175,59 @@ int main(int argc, char **argv)
         //----------------------------------------------------------------------
         // Classify rois
 
-        //only classify, if ground plane visible
-        for(int i = 0; i < _num_rois && _ground_plane != NULL; ++i)
-        {
-            common::Classification classification_shape;
-            common::Classification classification_color;
-
-
-#ifdef ENABLE_VISUALIZATION_RECOGNITION
-            //-----------------------------------------------------------------
-            //Draw cloud
-            std::stringstream ss;
-            ss << "Cloud_" << i;
-            common::Color c = _colors.next();
-            pcl::visualization::AddPointCloud(*_viewer,_clouds[i],ss.str(),c.r,c.g,c.b);
-
-            pcl::search::KdTree<pcl::PointXYZRGB>::Ptr kd_tree(new pcl::search::KdTree<pcl::PointXYZRGB>);
-            pcl::NormalEstimation<pcl::PointXYZRGB, pcl::Normal> normal_est;
-            pcl::PointCloud<pcl::Normal>::Ptr normals(new pcl::PointCloud<pcl::Normal>);
-            normal_est.setSearchMethod(kd_tree);
-            double kd_k;
-            ros::param::get("/vision/recognition/cylinder/kd_k",kd_k);
-            normal_est.setKSearch(kd_k);
-
-
-            normal_est.setInputCloud(_clouds[i]);
-            normal_est.compute(*normals);
-
-            _viewer->addPointCloudNormals<pcl::PointXYZRGB,pcl::Normal>(_clouds[i],normals,5);
-
-
-            //_classifiers[ci_max]->visualize(*_viewer,*_best_coeffs);
-
-            _viewer->spinOnce(30,true);
-
-#endif
-
-            //determine shape
-            classification_shape = _classifier_shape.classify(_clouds[i],_planes,_ground_plane);
-
-            //determine color
-            classification_color = _classifier_color.classify(_clouds[i]);
-            classification_color.set_shape_attributes(classification_shape.coefficients(), classification_shape.centroid(), classification_shape.obb());
-
-            common::ObjectClassification classified_object(classification_shape,classification_color);
-            _classifications.push_back(classified_object);
-        }
-
         //only update the recognition state when we receive data from the detection
         if (_received_rois) {
+
+            //only classify, if ground plane visible
+            for(int i = 0; i < _num_rois && _ground_plane != NULL; ++i)
+            {
+                common::Classification classification_shape;
+                common::Classification classification_color;
+
+
+    #ifdef ENABLE_VISUALIZATION_RECOGNITION
+                //-----------------------------------------------------------------
+                //Draw cloud
+                std::stringstream ss;
+                ss << "Cloud_" << i;
+                common::Color c = _colors.next();
+                pcl::visualization::AddPointCloud(*_viewer,_clouds[i],ss.str(),c.r,c.g,c.b);
+
+                pcl::search::KdTree<pcl::PointXYZRGB>::Ptr kd_tree(new pcl::search::KdTree<pcl::PointXYZRGB>);
+                pcl::NormalEstimation<pcl::PointXYZRGB, pcl::Normal> normal_est;
+                pcl::PointCloud<pcl::Normal>::Ptr normals(new pcl::PointCloud<pcl::Normal>);
+                normal_est.setSearchMethod(kd_tree);
+                double kd_k;
+                ros::param::get("/vision/recognition/cylinder/kd_k",kd_k);
+                normal_est.setKSearch(kd_k);
+
+
+                normal_est.setInputCloud(_clouds[i]);
+                normal_est.compute(*normals);
+
+                _viewer->addPointCloudNormals<pcl::PointXYZRGB,pcl::Normal>(_clouds[i],normals,5);
+
+
+                //_classifiers[ci_max]->visualize(*_viewer,*_best_coeffs);
+
+                _viewer->spinOnce(30,true);
+
+    #endif
+
+                //determine shape
+                classification_shape = _classifier_shape.classify(_clouds[i],_planes,_ground_plane);
+
+                //determine color
+                classification_color = _classifier_color.classify(_clouds[i]);
+                classification_color.set_shape_attributes(classification_shape.coefficients(), classification_shape.centroid(), classification_shape.obb());
+
+
+                ROS_ERROR("Classified rois %d as: %s %s",i, classification_color.name().c_str(), classification_shape.name().c_str());
+
+                common::ObjectClassification classified_object(classification_shape,classification_color);
+                _classifications.push_back(classified_object);
+            }
+
 
             //----------------------------------------------------------------------
             // Determine strongest ROI classification
