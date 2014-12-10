@@ -251,6 +251,55 @@ inline float project(Eigen::Vector3f& v, Eigen::Vector3f& p)
     return v.dot(p);
 }
 
+void WallExtractor::extract_largest_cluster_bounds(std::vector<float>& points, float min_gap, float& min, float& max)
+{
+    std::sort(points.begin(), points.end());
+
+    float max_left;
+    float max_right;
+    float max_length = 0;
+
+    float left = points[0];
+    float right = left;
+    float length = 0;
+
+    for(std::vector<float>::iterator it = points.begin()+1; it != points.end(); ++it)
+    {
+        if (std::abs(*it - right) >= min_gap) {
+
+            //overwrite largest cluster, if last sequence of points has a greater length
+            if (length > max_length) {
+                max_length = length;
+                max_left = left;
+                max_right = right;
+            }
+
+            left = *it;
+            right = left;
+        }
+        else {
+            //move the right a little further
+            right = *it;
+            length = std::abs(right-left);
+        }
+    }
+
+    if (max_length == 0) {
+        max_length = length;
+        max_left = left;
+        max_right = right;
+    }
+
+    if (max_left < max_right) {
+        min = max_left;
+        max = max_right;
+    }
+    else {
+        min = max_right;
+        max = max_left;
+    }
+}
+
 void WallExtractor::determine_XY_bounding_box(const pcl::ModelCoefficients& plane,
                                               const pcl::PointCloud<pcl::PointXYZRGB>& points,
                                               const std::vector<int>& indices,
@@ -274,6 +323,9 @@ void WallExtractor::determine_XY_bounding_box(const pcl::ModelCoefficients& plan
     float min_vert = std::numeric_limits<float>::infinity();
     float max_vert = -std::numeric_limits<float>::infinity();
 
+    std::vector<float> longitudinal_points;
+    longitudinal_points.reserve(points.size());
+
     for(std::vector<int>::const_iterator it = indices.begin(); it != indices.end(); ++it)
     {
         const pcl::PointXYZRGB& p3d = points[*it];
@@ -294,7 +346,12 @@ void WallExtractor::determine_XY_bounding_box(const pcl::ModelCoefficients& plan
 
         if (z < min_vert) min_vert = z;
         else if (z > max_vert) max_vert = z;
+
+        longitudinal_points.push_back(x);
     }
+
+    //determine the largest cluster
+    extract_largest_cluster_bounds(longitudinal_points, 0.1, min_long, max_long);
 
     //determine width and depth
     float width = std::abs(max_long - min_long);
