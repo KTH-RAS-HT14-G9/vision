@@ -136,7 +136,10 @@ ObjectConfirmation::Case ObjectConfirmation::correct_classification(const std::s
 
 //        ROS_ERROR("Fixed: %s %s", map_color.c_str(), map_shape.c_str());
 
-        return std::make_pair(map_color, map_shape);
+        if (map_shape.compare("Ball") == 0 && map_color.compare("orange") == 0)
+            return std::make_pair("red", map_shape);
+        else
+            return std::make_pair(map_color, map_shape);
 
     }
 
