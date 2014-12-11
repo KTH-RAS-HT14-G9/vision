@@ -151,7 +151,7 @@ common::vision::ROIArrayPtr ROIExtractor::extract(
 
     int cluster_i = 0;
     //remove cluster that are not inside max object height
-    for(std::vector<pcl::PointIndices>::iterator itCluster = clusters.begin(); itCluster != clusters.end(); ++itCluster, ++cluster_i)
+    for(std::vector<pcl::PointIndices>::iterator itCluster = clusters.begin(); itCluster != clusters.end(); ++itCluster)
     {
         bool enclosed = true;
         bool inside_bounds = true;
@@ -191,11 +191,6 @@ common::vision::ROIArrayPtr ROIExtractor::extract(
             }
         }
 
-        if (inside_bounds && largest_radius > largest_cluster_radius) {
-            largest_cluster_radius = largest_radius;
-            largest_cluster = cluster_i;
-        }
-
 
         //ROS_ERROR("Distance to ROI: %.3lf",dist);
         if (enclosed && inside_bounds && dist_to_roi < 0.55)
@@ -213,13 +208,19 @@ common::vision::ROIArrayPtr ROIExtractor::extract(
 
             common::vision::ROI roi(cluster_cloud);
             rois->push_back(roi);
+
+
+            if (largest_radius > largest_cluster_radius) {
+                largest_cluster_radius = largest_radius;
+                largest_cluster = cluster_i;
+            }
+            ++cluster_i;
         }
     }
 
     if (largest_cluster >= 0)
     {
-        int i = 0;
-        common::vision::ROI largest = rois->at(i);
+        common::vision::ROI largest = rois->at(largest_cluster);
         rois->clear();
         rois->push_back(largest);
     }
