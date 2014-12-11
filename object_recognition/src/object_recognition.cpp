@@ -222,7 +222,7 @@ int main(int argc, char **argv)
                 classification_color.set_shape_attributes(classification_shape.coefficients(), classification_shape.centroid(), classification_shape.obb());
 
 
-                ROS_ERROR("Classified rois %d as: %s %s",i, classification_color.name().c_str(), classification_shape.name().c_str());
+//                ROS_ERROR("Classified rois %d as: %s %s",i, classification_color.name().c_str(), classification_shape.name().c_str());
 
                 common::ObjectClassification classified_object(classification_shape,classification_color);
                 _classifications.push_back(classified_object);
