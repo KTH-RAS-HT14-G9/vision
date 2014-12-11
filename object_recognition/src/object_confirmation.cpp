@@ -107,13 +107,13 @@ ObjectConfirmation::Case ObjectConfirmation::correct_classification(const std::s
 {
     Case pair = std::make_pair(name_color,name_shape);
 
-    if(name_shape.compare("Sphere") == 0)
-    {
-        pair.first = "*";
-    }
     if(name_color.compare("green_light")==0 || name_color.compare("purple")==0)
     {
         pair.second  = "*";
+    }
+    if(name_shape.compare("Sphere") == 0)
+    {
+        pair.first = "*";
     }
 
     std::map<Case,Case>::const_iterator iterator = _special_case_map.find(pair);
@@ -136,7 +136,10 @@ ObjectConfirmation::Case ObjectConfirmation::correct_classification(const std::s
 
 //        ROS_ERROR("Fixed: %s %s", map_color.c_str(), map_shape.c_str());
 
-        return std::make_pair(map_color, map_shape);
+        if (map_shape.compare("Ball") == 0 && map_color.compare("orange") == 0)
+            return std::make_pair("red", map_shape);
+        else
+            return std::make_pair(map_color, map_shape);
 
     }
 

@@ -159,6 +159,12 @@ common::vision::ROIArrayPtr ROIExtractor::extract(
         Eigen::Vector4f centroid;
         pcl::compute3DCentroid(*cloud_t,indices,centroid);
         double dist = centroid.head<2>().norm();
+
+
+        Eigen::Matrix3f covariance;
+        pcl::computeCovarianceMatrix(*cloud_t,indices,centroid,covariance);
+        std::cerr << "[ROIExtractor::extract] Covariance matrix: \n" << covariance << std::endl;
+
         //ROS_ERROR("Distance to ROI: %.3lf",dist);
         if (enclosed && dist < 0.55)
         {

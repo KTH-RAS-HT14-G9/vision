@@ -8,7 +8,7 @@ ShapeRecognition::ShapeRecognition()
 {
     _classifiers.push_back(new ModelFitting("Sphere",pcl::SACMODEL_SPHERE,"/vision/recognition/sphere/"));
     _classifiers.push_back(new ModelFitting("Cylinder",pcl::SACMODEL_CYLINDER,"/vision/recognition/cylinder/"));
-    _classifiers.push_back(new PlaneFitting("Cube",2,"/vision/recognition/cube/", this));
+    _classifiers.push_back(new PlaneFitting("Cube",1,"/vision/recognition/cube/", this));
 }
 
 ShapeRecognition::~ShapeRecognition()
@@ -31,6 +31,8 @@ bool ShapeRecognition::condition(const std::vector<pcl::ModelCoefficients>& plan
     //0.: If there are 3 planes, then it is a cube
     if (planes.size()==3) return true;
 
+//    ROS_WARN("Num planes: %ld",planes.size());
+
     //--------------------------------------------------------------------------
     //1.: There has to be a plane that is parallel to the ground plane
     const pcl::ModelCoefficientsConstPtr& ground_c = _ground_plane->get_coefficients();
@@ -51,7 +53,20 @@ bool ShapeRecognition::condition(const std::vector<pcl::ModelCoefficients>& plan
     }
 
     //there is no parallel plane
-    if (max_metric > _dotprod_thresh()){
+    if (max_metric < _dotprod_thresh()){
+
+        //all other planes have to be perpendicular to the ground plane
+        for(int i = 0; i < planes.size(); ++i)
+        {
+            Eigen::Vector3f n_plane(planes[i].values[0],planes[i].values[1],planes[i].values[2]);
+            double dot = std::abs(n_ground.dot(n_plane));
+
+            if (dot > 1.0 - _dotprod_thresh()) {
+//                ROS_WARN("Plane %d is not perpendicular to ground.",i);
+                return false;
+            }
+        }
+
         return true;
     }
 
@@ -62,8 +77,9 @@ bool ShapeRecognition::condition(const std::vector<pcl::ModelCoefficients>& plan
     const Eigen::Vector4f& centroid = centroids[parallel_plane];
     Eigen::Vector3f parallel_centroid(centroid(0),centroid(1),centroid(2));
 
-    double dist = _ground_plane->distance(parallel_centroid);
+    double dist = std::abs(_ground_plane->distance(parallel_centroid));
     if (dist < 0.03 || dist > 0.05){
+//        ROS_WARN("Distance condition failed. Distance between horizontal and parallel plane: %.5lf",dist);
         return false;
     }
 
@@ -81,8 +97,10 @@ bool ShapeRecognition::condition(const std::vector<pcl::ModelCoefficients>& plan
         Eigen::Vector3f plane_centroid(c(0),c(1),c(2));
 
         //there is a plane behind the center of the parallel plane
-        if (plane_centroid.squaredNorm() > parallel_dist)
+        if (plane_centroid.squaredNorm() > parallel_dist) {
+//            ROS_WARN("There is a plane behind");
             return false;
+        }
     }
 
 
@@ -99,7 +117,7 @@ common::Classification ShapeRecognition::classify(const common::PointCloudRGB::P
         _parameter_initiated = true;
         //Manual set of parameters
         ros::param::set("/vision/recognition/sphere/dist_thresh",0.001);
-        ros::param::set("/vision/recognition/cylinder/dist_thresh",0.01);
+        ros::param::set("/vision/recognition/cylinder/dist_thresh",0.005);
         ros::param::set("/vision/recognition/cylinder/normal_dist_weight",0.01);
         ros::param::set("/vision/recognition/sphere/normal_dist_weight",0.1);
     }

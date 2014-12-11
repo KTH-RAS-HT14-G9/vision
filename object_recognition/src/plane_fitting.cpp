@@ -8,6 +8,8 @@ PlaneFitting::PlaneFitting(const std::string &name,
     :ShapeClassifierBase(name)
     ,_distance_threshold(parameter_prefix+"dist_thresh", 0.005)
     ,_halt_condition(parameter_prefix+"halt_condition", 0.05)
+    ,_kd_k(parameter_prefix+"kd_k", 50)
+    ,_normal_weight(parameter_prefix+"normal_dist_weight", 0.1)
     ,_min_planes(min_planes)
     ,_condition(condition)
 {
@@ -19,12 +21,20 @@ PlaneFitting::PlaneFitting(const std::string &name,
 
     _indices = pcl::PointIndices::Ptr(new pcl::PointIndices);
     _inliers = pcl::PointIndices::Ptr(new pcl::PointIndices);
+
+    _normals = pcl::PointCloud<pcl::Normal>::Ptr(new pcl::PointCloud<pcl::Normal>);
+    _kd_tree = pcl::search::KdTree<pcl::PointXYZRGB>::Ptr(new pcl::search::KdTree<pcl::PointXYZRGB>);
+
+    _normal_est.setSearchMethod(_kd_tree);
 }
 
 
 void PlaneFitting::set_parameters()
 {
     _seg.setDistanceThreshold(_distance_threshold());
+    _seg.setNormalDistanceWeight(_normal_weight());
+
+    _normal_est.setKSearch(_kd_k());
 }
 
 double PlaneFitting::rectangular_measure(std::vector<pcl::ModelCoefficients> planes)
@@ -68,10 +78,24 @@ int PlaneFitting::rebuild_indices_for_inlier_flag(pcl::PointIndices::Ptr& indice
 
 common::Classification PlaneFitting::classify(const common::SharedPointCloudRGB &cloud, pcl::ModelCoefficients::Ptr &coefficients)
 {
+//    _normals->clear();
+//    _inliers.indices.clear();
+//    coefficients->values.clear();
+
+//    _normal_est.setInputCloud(cloud);
+//    _normal_est.compute(*_normals);
+
+//    _seg.setInputCloud(cloud);
+//    _seg.setInputNormals(_normals);
+//    _seg.segment(_inliers,*coefficients);
+
+
+
     set_parameters();
 
     int N = cloud->points.size();
 
+    _normals->clear();
     _planes.clear();
     _centroids.clear();
     _indices->indices.clear();
@@ -82,7 +106,11 @@ common::Classification PlaneFitting::classify(const common::SharedPointCloudRGB 
 
     int remaining_n = rebuild_indices_for_inlier_flag(_indices,_all_inliers,false);
 
+    _normal_est.setInputCloud(cloud);
+    _normal_est.compute(*_normals);
+
     _seg.setInputCloud (cloud);
+    _seg.setInputNormals(_normals);
 
     //int i = 0;
 
@@ -121,8 +149,9 @@ common::Classification PlaneFitting::classify(const common::SharedPointCloudRGB 
 
     if (_planes.size() > 0 && _planes.size() >= _min_planes) {
 
-        if (_condition->condition(_planes,_centroids) == false)
+        if (_condition->condition(_planes,_centroids) == false) {
             return common::Classification(name(),0);
+        }
 
         build_multiple_plane_model(_planes, coefficients);
 
