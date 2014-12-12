@@ -6,8 +6,8 @@ ObjectConfirmation::ObjectConfirmation()
     ,_reset_threshold_p1("/vision/recognition/confirmation/1_phase/reset_threshold",8)
 
     ,_min_ratio_p2("/vision/recognition/confirmation/2_phase/min_ratio",0.6)
-    ,_min_iterations_p2("/vision/recognition/confirmation/2_phase/min_frames",15)
-    ,_reset_threshold_p2("/vision/recognition/confirmation/2_phase/reset_threshold",5)
+    ,_min_iterations_p2("/vision/recognition/confirmation/2_phase/min_frames",6)
+    ,_reset_threshold_p2("/vision/recognition/confirmation/2_phase/reset_threshold",10)
 
     ,_empty_frames(0)
     ,_accumulated_frames(0)
