@@ -159,7 +159,9 @@ bool ObjectConfirmation::update(const common::ObjectClassification& classificati
     double min_iterations;
     double min_ratio;
 
-    if (_last_phase != phase) {
+    if (_last_phase == PHASE_RECOGNITION &&
+        phase == PHASE_DETECTION)
+    {
         reset_accumulation();
         _empty_frames = 0;
     }
