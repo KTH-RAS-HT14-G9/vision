@@ -173,14 +173,17 @@ int main(int argc, char **argv)
 
 #endif
 
-        --_recognition_auto_recover;
-        if (_recognition_auto_recover <= 0) {
-            _object_confirmation.reset();
-            _recognition_phase = PHASE_DETECTION;
-            _recognition_auto_recover = AUTO_RECOVER_AFTER_FRAME;
+        if (_recognition_phase == PHASE_RECOGNITION) {
+            --_recognition_auto_recover;
+            if (_recognition_auto_recover <= 0) {
+                _object_confirmation.reset();
+                _recognition_phase = PHASE_DETECTION;
 
-            ROS_WARN("Auto recover recognition after frame %d", AUTO_RECOVER_AFTER_FRAME);
+                ROS_WARN("Auto recover recognition after frame %d", AUTO_RECOVER_AFTER_FRAME);
+            }
         }
+        else
+            _recognition_auto_recover = AUTO_RECOVER_AFTER_FRAME;
 
         _classifications.clear();
 
