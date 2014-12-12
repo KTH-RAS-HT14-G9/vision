@@ -22,6 +22,8 @@
 #include <common/visualization_addons.h>
 #endif
 
+#define AUTO_RECOVER_AFTER_FRAME 40
+
 ColorDetector _classifier_color;
 ShapeRecognition _classifier_shape;
 ObjectConfirmation _object_confirmation;
@@ -36,6 +38,7 @@ sensor_msgs::Image::ConstPtr _img;
 std::vector<common::ObjectClassification > _classifications;
 
 int _recognition_phase = PHASE_DETECTION;
+int _recognition_auto_recover = AUTO_RECOVER_AFTER_FRAME;
 
 int _num_rois = 0;
 bool _received_rois = false;
@@ -169,6 +172,15 @@ int main(int argc, char **argv)
     _colors.reset();
 
 #endif
+
+        --_recognition_auto_recover;
+        if (_recognition_auto_recover <= 0) {
+            _object_confirmation.reset();
+            _recognition_phase = PHASE_DETECTION;
+            _recognition_auto_recover = AUTO_RECOVER_AFTER_FRAME;
+
+            ROS_WARN("Auto recover recognition after frame %d", AUTO_RECOVER_AFTER_FRAME);
+        }
 
         _classifications.clear();
 
