@@ -173,27 +173,27 @@ common::vision::ROIArrayPtr ROIExtractor::extract(
         pcl::compute3DCentroid(*cloud_t,indices,centroid);
         double dist_to_roi = centroid.head<2>().norm();
 
-        double largest_radius = 0;
-        //discard rois that have points further away from the centroid than 3cm
-        for(std::vector<int>::iterator itPoints = indices.begin(); itPoints != indices.end(); ++itPoints)
-        {
-            const pcl::PointXYZRGB& p = cloud_t->at(*itPoints);
+//        double largest_radius = 0;
+//        //discard rois that have points further away from the centroid than 3cm
+//        for(std::vector<int>::iterator itPoints = indices.begin(); itPoints != indices.end(); ++itPoints)
+//        {
+//            const pcl::PointXYZRGB& p = cloud_t->at(*itPoints);
 
-            float dist_to_centroid = euclidean_distance_sq(p, centroid);
+//            float dist_to_centroid = euclidean_distance_sq(p, centroid);
 
-            if (dist_to_centroid > largest_radius) {
-                largest_radius = dist_to_centroid;
-            }
+//            if (dist_to_centroid > largest_radius) {
+//                largest_radius = dist_to_centroid;
+//            }
 
-            if (dist_to_centroid > 0.04*0.04) {
-                inside_bounds = false;
-                break;
-            }
-        }
+//            if (dist_to_centroid > 0.04*0.04) {
+//                inside_bounds = false;
+//                break;
+//            }
+//        }
 
 
         //ROS_ERROR("Distance to ROI: %.3lf",dist);
-        if (enclosed && inside_bounds && dist_to_roi < 0.55)
+        if (enclosed /*&& inside_bounds*/ && dist_to_roi < 0.55)
         {
             common::PointCloudRGB::Ptr cluster_cloud(new common::PointCloudRGB);
 
@@ -210,20 +210,20 @@ common::vision::ROIArrayPtr ROIExtractor::extract(
             rois->push_back(roi);
 
 
-            if (largest_radius > largest_cluster_radius) {
-                largest_cluster_radius = largest_radius;
-                largest_cluster = cluster_i;
-            }
-            ++cluster_i;
+//            if (largest_radius > largest_cluster_radius) {
+//                largest_cluster_radius = largest_radius;
+//                largest_cluster = cluster_i;
+//            }
+//            ++cluster_i;
         }
     }
 
-    if (largest_cluster >= 0)
-    {
-        common::vision::ROI largest = rois->at(largest_cluster);
-        rois->clear();
-        rois->push_back(largest);
-    }
+//    if (largest_cluster >= 0)
+//    {
+//        common::vision::ROI largest = rois->at(largest_cluster);
+//        rois->clear();
+//        rois->push_back(largest);
+//    }
 
 
 
