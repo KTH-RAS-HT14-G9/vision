@@ -138,6 +138,8 @@ ObjectConfirmation::Case ObjectConfirmation::correct_classification(const std::s
 
         if (map_shape.compare("Ball") == 0 && map_color.compare("orange") == 0)
             return std::make_pair("red", map_shape);
+        else if (map_shape.compare("Cube") == 0 && map_color.compare("orange") == 0)
+            return std::make_pair("yellow", map_shape);
         else
             return std::make_pair(map_color, map_shape);
 
