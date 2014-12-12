@@ -22,7 +22,7 @@
 #include <common/visualization_addons.h>
 #endif
 
-#define AUTO_RECOVER_AFTER_FRAME 40
+#define AUTO_RECOVER_AFTER_FRAME 50
 
 ColorDetector _classifier_color;
 ShapeRecognition _classifier_shape;
