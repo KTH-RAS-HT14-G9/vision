@@ -48,10 +48,10 @@ Parameter<int>    _outlier_meanK("/vision/walls/outliers/meanK", 50);
 Parameter<double> _outlier_thresh("/vision/walls/outliers/thresh", 0.5);
 
 // Parameters of object detector
-Parameter<double> _wall_thickness("/vision/rois/dist_thresh", 0.008);
-Parameter<int> _cluster_min("/vision/rois/cluster_min", 50);
+Parameter<double> _wall_thickness("/vision/rois/wall_thickness", 0.008);
+Parameter<int> _cluster_min("/vision/rois/cluster_min", 100);
 Parameter<int> _cluster_max("/vision/rois/cluster_max", 5000);
-Parameter<double> _cluster_tolerance("/vision/rois/cluster_tolerance", 0.015);
+Parameter<double> _cluster_tolerance("/vision/rois/cluster_tolerance", 0.03);
 Parameter<double> _max_object_height("/vision/rois/max_object_height", 0.07);
 
 //------------------------------------------------------------------------------

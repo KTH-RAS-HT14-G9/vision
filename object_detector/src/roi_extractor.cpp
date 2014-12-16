@@ -53,6 +53,14 @@ void ROIExtractor::filter_points_on_plane(const common::SharedPointCloudRGB& clo
     std::swap(indices_in_out.indices, _index_buffer);
 }
 
+float euclidean_distance_sq(const pcl::PointXYZRGB& p, const Eigen::Vector4f& centroid)
+{
+    float xx = (p.x-centroid(0))*(p.x-centroid(0));
+    float yy = (p.y-centroid(1))*(p.y-centroid(1));
+    float zz = (p.z-centroid(2))*(p.z-centroid(2));
+    return xx + yy + zz;
+}
+
 common::vision::ROIArrayPtr ROIExtractor::extract(
         const common::vision::SegmentedPlane::ArrayPtr& walls,
         const common::SharedPointCloudRGB& pcloud,
@@ -138,10 +146,15 @@ common::vision::ROIArrayPtr ROIExtractor::extract(
     int i = 0;
 #endif
 
+    double largest_cluster_radius = 0;
+    int largest_cluster = -1;
+
+    int cluster_i = 0;
     //remove cluster that are not inside max object height
     for(std::vector<pcl::PointIndices>::iterator itCluster = clusters.begin(); itCluster != clusters.end(); ++itCluster)
     {
         bool enclosed = true;
+        bool inside_bounds = true;
 
         std::vector<int>& indices = itCluster->indices;
         for(std::vector<int>::iterator itPoints = indices.begin(); itPoints != indices.end(); ++itPoints)
@@ -158,9 +171,29 @@ common::vision::ROIArrayPtr ROIExtractor::extract(
         //classification
         Eigen::Vector4f centroid;
         pcl::compute3DCentroid(*cloud_t,indices,centroid);
-        double dist = centroid.head<2>().norm();
+        double dist_to_roi = centroid.head<2>().norm();
+
+//        double largest_radius = 0;
+//        //discard rois that have points further away from the centroid than 3cm
+//        for(std::vector<int>::iterator itPoints = indices.begin(); itPoints != indices.end(); ++itPoints)
+//        {
+//            const pcl::PointXYZRGB& p = cloud_t->at(*itPoints);
+
+//            float dist_to_centroid = euclidean_distance_sq(p, centroid);
+
+//            if (dist_to_centroid > largest_radius) {
+//                largest_radius = dist_to_centroid;
+//            }
+
+//            if (dist_to_centroid > 0.04*0.04) {
+//                inside_bounds = false;
+//                break;
+//            }
+//        }
+
+
         //ROS_ERROR("Distance to ROI: %.3lf",dist);
-        if (enclosed && dist < 0.55)
+        if (enclosed /*&& inside_bounds*/ && dist_to_roi < 0.55)
         {
             common::PointCloudRGB::Ptr cluster_cloud(new common::PointCloudRGB);
 
@@ -175,8 +208,23 @@ common::vision::ROIArrayPtr ROIExtractor::extract(
 
             common::vision::ROI roi(cluster_cloud);
             rois->push_back(roi);
+
+
+//            if (largest_radius > largest_cluster_radius) {
+//                largest_cluster_radius = largest_radius;
+//                largest_cluster = cluster_i;
+//            }
+//            ++cluster_i;
         }
     }
+
+//    if (largest_cluster >= 0)
+//    {
+//        common::vision::ROI largest = rois->at(largest_cluster);
+//        rois->clear();
+//        rois->push_back(largest);
+//    }
+
 
 
 #ifdef ENABLE_VISUALIZATION_ROIS

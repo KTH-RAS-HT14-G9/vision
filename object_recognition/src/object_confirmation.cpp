@@ -6,8 +6,8 @@ ObjectConfirmation::ObjectConfirmation()
     ,_reset_threshold_p1("/vision/recognition/confirmation/1_phase/reset_threshold",8)
 
     ,_min_ratio_p2("/vision/recognition/confirmation/2_phase/min_ratio",0.6)
-    ,_min_iterations_p2("/vision/recognition/confirmation/2_phase/min_frames",15)
-    ,_reset_threshold_p2("/vision/recognition/confirmation/2_phase/reset_threshold",5)
+    ,_min_iterations_p2("/vision/recognition/confirmation/2_phase/min_frames",6)
+    ,_reset_threshold_p2("/vision/recognition/confirmation/2_phase/reset_threshold",10)
 
     ,_empty_frames(0)
     ,_accumulated_frames(0)
@@ -88,7 +88,8 @@ void ObjectConfirmation::set_special_cases_map()
     std::vector<Case> cases_to;
 
     cases_from.push_back(std::make_pair("purple","*"));             cases_to.push_back(std::make_pair("purple","Cross"));
-    cases_from.push_back(std::make_pair("orange","undefined"));     cases_to.push_back(std::make_pair("","Patric"));
+    //cases_from.push_back(std::make_pair("orange","undefined"));     cases_to.push_back(std::make_pair("","Patric"));
+    cases_from.push_back(std::make_pair("orange","*"));             cases_to.push_back(std::make_pair("","Patric"));
     cases_from.push_back(std::make_pair("blue","undefined"));       cases_to.push_back(std::make_pair("blue","Triangle"));
     cases_from.push_back(std::make_pair("blue","Cylinder"));        cases_to.push_back(std::make_pair("blue","Triangle"));
     cases_from.push_back(std::make_pair("green_light","*"));        cases_to.push_back(std::make_pair("green","*"));
@@ -106,13 +107,13 @@ ObjectConfirmation::Case ObjectConfirmation::correct_classification(const std::s
 {
     Case pair = std::make_pair(name_color,name_shape);
 
-    if(name_shape.compare("Sphere") == 0)
-    {
-        pair.first = "*";
-    }
     if(name_color.compare("green_light")==0 || name_color.compare("purple")==0)
     {
         pair.second  = "*";
+    }
+    if(name_shape.compare("Sphere") == 0)
+    {
+        pair.first = "*";
     }
 
     std::map<Case,Case>::const_iterator iterator = _special_case_map.find(pair);
@@ -135,7 +136,12 @@ ObjectConfirmation::Case ObjectConfirmation::correct_classification(const std::s
 
 //        ROS_ERROR("Fixed: %s %s", map_color.c_str(), map_shape.c_str());
 
-        return std::make_pair(map_color, map_shape);
+        if (map_shape.compare("Ball") == 0 && map_color.compare("orange") == 0)
+            return std::make_pair("red", map_shape);
+        else if (map_shape.compare("Cube") == 0 && map_color.compare("orange") == 0)
+            return std::make_pair("yellow", map_shape);
+        else
+            return std::make_pair(map_color, map_shape);
 
     }
 
@@ -155,7 +161,9 @@ bool ObjectConfirmation::update(const common::ObjectClassification& classificati
     double min_iterations;
     double min_ratio;
 
-    if (_last_phase != phase) {
+    if (_last_phase == PHASE_RECOGNITION &&
+        phase == PHASE_DETECTION)
+    {
         reset_accumulation();
         _empty_frames = 0;
     }

@@ -4,6 +4,8 @@
 #include <shape_fitting/shape_classifier_base.h>
 #include <common/parameter.h>
 #include <pcl/segmentation/sac_segmentation.h>
+#include <pcl/features/normal_3d.h>
+#include <pcl/kdtree/kdtree.h>
 #include "plane_condition.h"
 
 class PlaneFitting : public ShapeClassifierBase
@@ -31,7 +33,13 @@ protected:
     PlaneCondition* _condition;
 
     int _min_planes;
-    pcl::SACSegmentation<pcl::PointXYZRGB> _seg;
+    //pcl::SACSegmentation<pcl::PointXYZRGB> _seg;
+    pcl::SACSegmentationFromNormals<pcl::PointXYZRGB, pcl::Normal> _seg;
+    pcl::NormalEstimation<pcl::PointXYZRGB, pcl::Normal> _normal_est;
+    pcl::search::KdTree<pcl::PointXYZRGB>::Ptr _kd_tree;
+
+    pcl::PointCloud<pcl::Normal>::Ptr _normals;
+
     pcl::PointIndices::Ptr _indices;
     pcl::PointIndices::Ptr _inliers;
     std::vector<bool> _all_inliers;
@@ -40,6 +48,8 @@ protected:
 
     Parameter<double> _distance_threshold;
     Parameter<double> _halt_condition;
+    Parameter<int> _kd_k;
+    Parameter<double> _normal_weight;
 };
 
 #endif // PLANE_FITTING_H

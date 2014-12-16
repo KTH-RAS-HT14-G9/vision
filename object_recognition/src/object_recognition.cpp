@@ -22,6 +22,8 @@
 #include <common/visualization_addons.h>
 #endif
 
+#define AUTO_RECOVER_AFTER_FRAME 50
+
 ColorDetector _classifier_color;
 ShapeRecognition _classifier_shape;
 ObjectConfirmation _object_confirmation;
@@ -36,6 +38,7 @@ sensor_msgs::Image::ConstPtr _img;
 std::vector<common::ObjectClassification > _classifications;
 
 int _recognition_phase = PHASE_DETECTION;
+int _recognition_auto_recover = AUTO_RECOVER_AFTER_FRAME;
 
 int _num_rois = 0;
 bool _received_rois = false;
@@ -89,8 +92,8 @@ void callback_recognize(const std_msgs::EmptyConstPtr& empty)
     _recognition_phase = PHASE_RECOGNITION;
     //_object_confirmation.reset();
 
-    ros::param::getCached("/vision/filter/down_sampling/leaf_size",_original_voxel_size);
-    ros::param::set("/vision/filter/down_sampling/leaf_size",(_original_voxel_size*0.75));
+//    ros::param::getCached("/vision/filter/down_sampling/leaf_size",_original_voxel_size);
+//    ros::param::set("/vision/filter/down_sampling/leaf_size",(_original_voxel_size*0.75));
 }
 
 int classificationToTypeID(common::ObjectClassification& classification)
@@ -170,60 +173,76 @@ int main(int argc, char **argv)
 
 #endif
 
+        if (_recognition_phase == PHASE_RECOGNITION) {
+            --_recognition_auto_recover;
+            if (_recognition_auto_recover <= 0) {
+                _object_confirmation.reset();
+                _recognition_phase = PHASE_DETECTION;
+
+                ROS_WARN("Auto recover recognition after frame %d", AUTO_RECOVER_AFTER_FRAME);
+            }
+        }
+        else
+            _recognition_auto_recover = AUTO_RECOVER_AFTER_FRAME;
+
         _classifications.clear();
 
         //----------------------------------------------------------------------
         // Classify rois
 
-        //only classify, if ground plane visible
-        for(int i = 0; i < _num_rois && _ground_plane != NULL; ++i)
-        {
-            common::Classification classification_shape;
-            common::Classification classification_color;
-
-
-#ifdef ENABLE_VISUALIZATION_RECOGNITION
-            //-----------------------------------------------------------------
-            //Draw cloud
-            std::stringstream ss;
-            ss << "Cloud_" << i;
-            common::Color c = _colors.next();
-            pcl::visualization::AddPointCloud(*_viewer,_clouds[i],ss.str(),c.r,c.g,c.b);
-
-            pcl::search::KdTree<pcl::PointXYZRGB>::Ptr kd_tree(new pcl::search::KdTree<pcl::PointXYZRGB>);
-            pcl::NormalEstimation<pcl::PointXYZRGB, pcl::Normal> normal_est;
-            pcl::PointCloud<pcl::Normal>::Ptr normals(new pcl::PointCloud<pcl::Normal>);
-            normal_est.setSearchMethod(kd_tree);
-            double kd_k;
-            ros::param::get("/vision/recognition/cylinder/kd_k",kd_k);
-            normal_est.setKSearch(kd_k);
-
-
-            normal_est.setInputCloud(_clouds[i]);
-            normal_est.compute(*normals);
-
-            _viewer->addPointCloudNormals<pcl::PointXYZRGB,pcl::Normal>(_clouds[i],normals,5);
-
-
-            //_classifiers[ci_max]->visualize(*_viewer,*_best_coeffs);
-
-            _viewer->spinOnce(30,true);
-
-#endif
-
-            //determine shape
-            classification_shape = _classifier_shape.classify(_clouds[i],_planes,_ground_plane);
-
-            //determine color
-            classification_color = _classifier_color.classify(_clouds[i]);
-            classification_color.set_shape_attributes(classification_shape.coefficients(), classification_shape.centroid(), classification_shape.obb());
-
-            common::ObjectClassification classified_object(classification_shape,classification_color);
-            _classifications.push_back(classified_object);
-        }
-
         //only update the recognition state when we receive data from the detection
         if (_received_rois) {
+
+            //only classify, if ground plane visible
+            for(int i = 0; i < _num_rois && _ground_plane != NULL; ++i)
+            {
+                common::Classification classification_shape;
+                common::Classification classification_color;
+
+
+    #ifdef ENABLE_VISUALIZATION_RECOGNITION
+                //-----------------------------------------------------------------
+                //Draw cloud
+                std::stringstream ss;
+                ss << "Cloud_" << i;
+                common::Color c = _colors.next();
+                pcl::visualization::AddPointCloud(*_viewer,_clouds[i],ss.str(),c.r,c.g,c.b);
+
+                pcl::search::KdTree<pcl::PointXYZRGB>::Ptr kd_tree(new pcl::search::KdTree<pcl::PointXYZRGB>);
+                pcl::NormalEstimation<pcl::PointXYZRGB, pcl::Normal> normal_est;
+                pcl::PointCloud<pcl::Normal>::Ptr normals(new pcl::PointCloud<pcl::Normal>);
+                normal_est.setSearchMethod(kd_tree);
+                double kd_k;
+                ros::param::get("/vision/recognition/cylinder/kd_k",kd_k);
+                normal_est.setKSearch(kd_k);
+
+
+                normal_est.setInputCloud(_clouds[i]);
+                normal_est.compute(*normals);
+
+                _viewer->addPointCloudNormals<pcl::PointXYZRGB,pcl::Normal>(_clouds[i],normals,5);
+
+
+                //_classifiers[ci_max]->visualize(*_viewer,*_best_coeffs);
+
+                _viewer->spinOnce(30,true);
+
+    #endif
+
+                //determine shape
+                classification_shape = _classifier_shape.classify(_clouds[i],_planes,_ground_plane);
+
+                //determine color
+                classification_color = _classifier_color.classify(_clouds[i]);
+                classification_color.set_shape_attributes(classification_shape.coefficients(), classification_shape.centroid(), classification_shape.obb());
+
+
+//                ROS_ERROR("Classified rois %d as: %s %s",i, classification_color.name().c_str(), classification_shape.name().c_str());
+
+                common::ObjectClassification classified_object(classification_shape,classification_color);
+                _classifications.push_back(classified_object);
+            }
+
 
             //----------------------------------------------------------------------
             // Determine strongest ROI classification
@@ -328,7 +347,7 @@ int main(int argc, char **argv)
                 // Switch phase
                 if (_recognition_phase == PHASE_RECOGNITION) {
                     _recognition_phase = PHASE_DETECTION;
-                    ros::param::set("/vision/filter/down_sampling/leaf_size", _original_voxel_size);
+//                    ros::param::set("/vision/filter/down_sampling/leaf_size", _original_voxel_size);
                 }
             } // if confirmed
         } // if _received_rois
